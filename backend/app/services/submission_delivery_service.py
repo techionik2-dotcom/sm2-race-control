@@ -172,6 +172,13 @@ def process_submission_delivery(
     if submission is None:
         return None
 
+    if not settings.make_webhook_url:
+        submission.status = SubmissionStatus.SENT
+        submission.error_message = None
+        db.commit()
+        db.refresh(submission)
+        return submission
+
     outbox = _fetch_outbox(db, submission_id)
     if outbox is None and settings.make_webhook_url:
         enqueue_submission_delivery(
@@ -181,20 +188,6 @@ def process_submission_delivery(
         )
         db.flush()
         outbox = _fetch_outbox(db, submission_id)
-
-    if not settings.make_webhook_url:
-        submission.status = SubmissionStatus.SENT
-        submission.error_message = None
-        _mark_outbox_status(
-            db,
-            submission_id=submission_id,
-            delivery_status="DELIVERED",
-            attempt_count=int(outbox["attempt_count"]) if outbox else 0,
-            delivered_at=datetime.now(timezone.utc),
-        )
-        db.commit()
-        db.refresh(submission)
-        return submission
 
     attempts = int(outbox["attempt_count"]) if outbox else 0
     submission_input_value = submission_input_id or (int(outbox["submission_input_id"]) if outbox and outbox["submission_input_id"] else None)

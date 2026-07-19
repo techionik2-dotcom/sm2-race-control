@@ -183,17 +183,8 @@ export default function LoginContent() {
     const accessStatus = searchParams.get("access");
 
     if (signupState === "pending" || signupState === "success") {
-      setSuccessTitle("Request submitted");
-      setSuccess(
-        "Your account request has been sent to an owner for approval. You can sign in after the request is approved.",
-      );
-      router.replace("/login", { scroll: false });
-      const timer = window.setTimeout(() => {
-        setSuccess("");
-        setSuccessTitle("");
-      }, 5000);
-
-      return () => window.clearTimeout(timer);
+      router.replace("/registration-pending", { scroll: false });
+      return undefined;
     }
 
     if (accessStatus === "denied") {

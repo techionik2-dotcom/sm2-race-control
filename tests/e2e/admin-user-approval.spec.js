@@ -50,6 +50,8 @@ async function mockApprovalRoutes(page) {
           ...PENDING_USER,
           is_active: true,
           approval_status: "APPROVED",
+          approved_at: "2026-05-04T12:05:00.000Z",
+          approved_by_id: ADMIN_USER.id,
           updated_at: "2026-05-04T12:05:00.000Z",
         },
       });
@@ -73,12 +75,15 @@ test.describe("admin signup approvals", () => {
 
     await page.goto("/admin/users");
     await expect(page.getByRole("heading", { name: "User Management" })).toBeVisible();
+    await expect(page.getByRole("tab", { name: /Pending Approval/ })).toBeVisible();
     await expect(page.getByTitle("Pending Approval")).toBeVisible();
 
     await page.getByRole("button", { name: "Approve Pending User" }).click();
 
-    await expect(page.getByText("User approved")).toBeVisible();
+    await expect(page.getByText("Account approved", { exact: true })).toBeVisible();
+    await expect(page.getByText("Account approved successfully. The user can now sign in.")).toBeVisible();
     await expect(page.getByRole("button", { name: "Approve Pending User" })).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Change password for Pending User" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Reject Pending User" })).toHaveCount(0);
+    await expect(page.getByTitle("Active")).toBeVisible();
   });
 });

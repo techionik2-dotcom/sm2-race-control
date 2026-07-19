@@ -43,10 +43,12 @@ test.describe("signup approval request", () => {
     await page.getByRole("checkbox").check();
     await page.getByRole("button", { name: "Request Access" }).click();
 
-    await page.waitForURL("**/login?signup=pending");
-    await expect(page.getByRole("heading", { name: "Request submitted" })).toBeVisible();
+    await page.waitForURL("**/registration-pending");
+    await expect(page.getByRole("heading", { name: "Account Request Submitted" })).toBeVisible();
     await expect(
-      page.getByText("Your account request has been sent to an admin for approval."),
+      page.getByText("Your account has been created successfully and is waiting for approval"),
     ).toBeVisible();
+    await expect(page.getByText("Status")).toBeVisible();
+    await expect(page.getByText("Pending Approval")).toBeVisible();
   });
 });

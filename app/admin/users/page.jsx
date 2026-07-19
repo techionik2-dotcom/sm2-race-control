@@ -13,6 +13,7 @@ import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import SortOutlinedIcon from "@mui/icons-material/SortOutlined";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 
 import { useAuth } from "../../context/AuthContext";
 import ProtectedRoute from "../../components/ProtectedRoute";
@@ -29,6 +30,7 @@ import {
   createAdminUser,
   deleteUser,
   getUsers,
+  rejectUser,
   resetUserPassword,
   updateUserRole,
 } from "../../utils/authApi";
@@ -48,10 +50,11 @@ const INITIAL_PASSWORD_FORM_VALUES = {
 };
 
 const STATUS_FILTER_OPTIONS = [
-  { value: "all", label: "All Statuses" },
+  { value: "all", label: "All Users" },
   { value: "pending", label: "Pending Approval" },
   { value: "active", label: "Active" },
-  { value: "inactive", label: "Inactive" },
+  { value: "rejected", label: "Rejected" },
+  { value: "inactive", label: "Disabled" },
 ];
 
 const ROLE_FILTER_OPTIONS = [
@@ -76,6 +79,8 @@ const normalizeRole = (role) => String(role || "DRIVER").toUpperCase();
 const normalizeApprovalStatus = (value) => String(value || "APPROVED").toUpperCase();
 
 const isPendingApproval = (user) => normalizeApprovalStatus(user?.approvalStatus) === "PENDING";
+const isRejectedApproval = (user) => normalizeApprovalStatus(user?.approvalStatus) === "REJECTED";
+const isApprovedApproval = (user) => normalizeApprovalStatus(user?.approvalStatus) === "APPROVED";
 
 const formatRoleLabel = (role) => {
   const normalized = normalizeRole(role);
@@ -98,6 +103,10 @@ const getAccountTone = (user) => {
     return "warning";
   }
 
+  if (isRejectedApproval(user)) {
+    return "danger";
+  }
+
   return user?.isActive === false ? "danger" : "success";
 };
 
@@ -106,7 +115,11 @@ const getAccountLabel = (user) => {
     return "Pending Approval";
   }
 
-  return user?.isActive === false ? "Inactive" : "Active";
+  if (isRejectedApproval(user)) {
+    return "Rejected";
+  }
+
+  return user?.isActive === false ? "Disabled" : "Active";
 };
 
 const formatDate = (value) => {
@@ -198,8 +211,10 @@ export default function UsersManagement() {
   const [isUpdatingRole, setIsUpdatingRole] = useState(false);
   const [rolePendingChange, setRolePendingChange] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [viewTarget, setViewTarget] = useState(null);
   const [isDeletingUser, setIsDeletingUser] = useState(false);
   const [isApprovingUser, setIsApprovingUser] = useState(false);
+  const [isRejectingUser, setIsRejectingUser] = useState(false);
 
   const refreshUsers = useCallback(async () => {
     try {
@@ -231,10 +246,11 @@ export default function UsersManagement() {
   const summaryCounts = useMemo(() => {
     const pendingUsers = users.filter((user) => isPendingApproval(user)).length;
     const activeUsers = users.filter(
-      (user) => user.isActive !== false && !isPendingApproval(user),
+      (user) => user.isActive !== false && isApprovedApproval(user),
     ).length;
+    const rejectedUsers = users.filter((user) => isRejectedApproval(user)).length;
     const inactiveUsers = users.filter(
-      (user) => user.isActive === false && !isPendingApproval(user),
+      (user) => user.isActive === false && !isPendingApproval(user) && !isRejectedApproval(user),
     ).length;
     const elevatedUsers = users.filter((user) => ["OWNER"].includes(normalizeRole(user.role))).length;
 
@@ -242,6 +258,7 @@ export default function UsersManagement() {
       total: users.length,
       active: activeUsers,
       pending: pendingUsers,
+      rejected: rejectedUsers,
       inactive: inactiveUsers,
       elevated: elevatedUsers,
     };
@@ -263,10 +280,14 @@ export default function UsersManagement() {
         }
 
         if (statusFilter === "active") {
-          return user.isActive !== false && !isPendingApproval(user);
+          return user.isActive !== false && isApprovedApproval(user);
         }
 
-        return user.isActive === false && !isPendingApproval(user);
+        if (statusFilter === "rejected") {
+          return isRejectedApproval(user);
+        }
+
+        return user.isActive === false && !isPendingApproval(user) && !isRejectedApproval(user);
       });
     }
 
@@ -288,6 +309,24 @@ export default function UsersManagement() {
   const roleAssignmentOptions = useMemo(
     () => getAssignableRoleOptions(currentUser?.role),
     [currentUser?.role],
+  );
+
+  const statusFilterTabs = useMemo(
+    () =>
+      STATUS_FILTER_OPTIONS.map((option) => ({
+        ...option,
+        count:
+          option.value === "all"
+            ? summaryCounts.total
+            : option.value === "pending"
+              ? summaryCounts.pending
+              : option.value === "active"
+                ? summaryCounts.active
+                : option.value === "rejected"
+                  ? summaryCounts.rejected
+                  : summaryCounts.inactive,
+      })),
+    [summaryCounts],
   );
 
   const resetFilters = () => {
@@ -363,6 +402,10 @@ export default function UsersManagement() {
         return false;
       }
 
+      if (isRejectedApproval(targetUser) || targetUser.isActive === false) {
+        return false;
+      }
+
       if (currentRole === "OWNER") {
         return true;
       }
@@ -380,6 +423,15 @@ export default function UsersManagement() {
     (targetUser) =>
       Boolean(targetUser?.id) &&
       targetUser.id !== currentUser?.id &&
+      isPendingApproval(targetUser),
+    [currentUser],
+  );
+
+  const canRejectUser = useCallback(
+    (targetUser) =>
+      Boolean(targetUser?.id) &&
+      targetUser.id !== currentUser?.id &&
+      normalizeRole(targetUser.role) !== "OWNER" &&
       isPendingApproval(targetUser),
     [currentUser],
   );
@@ -435,6 +487,14 @@ export default function UsersManagement() {
   const getPasswordActionTitle = (targetUser) => {
     if (isPendingApproval(targetUser)) {
       return "Approve this signup before resetting the password";
+    }
+
+    if (isRejectedApproval(targetUser)) {
+      return "Rejected accounts cannot sign in unless a new request is created";
+    }
+
+    if (targetUser?.isActive === false) {
+      return "Disabled accounts cannot use password reset for sign-in";
     }
 
     if (canResetPassword(targetUser)) {
@@ -531,6 +591,14 @@ export default function UsersManagement() {
     setDeleteTarget(null);
   };
 
+  const openViewPanel = (targetUser) => {
+    setViewTarget(targetUser);
+  };
+
+  const closeViewPanel = () => {
+    setViewTarget(null);
+  };
+
   const handleApproveUser = async (targetUser) => {
     if (!canApproveUser(targetUser)) return;
 
@@ -543,10 +611,13 @@ export default function UsersManagement() {
       setUsers((current) =>
         current.map((user) => (user.id === updatedUser.id ? { ...user, ...updatedUser } : user)),
       );
+      setViewTarget((current) =>
+        current?.id === updatedUser.id ? { ...current, ...updatedUser } : current,
+      );
       setNotice({
         tone: "success",
-        title: "User approved",
-        message: `${updatedUser.name} can now log in with their signup credentials.`,
+        title: "Account approved",
+        message: "Account approved successfully. The user can now sign in.",
       });
     } catch (error) {
       console.error("Failed to approve user:", error);
@@ -557,6 +628,38 @@ export default function UsersManagement() {
       });
     } finally {
       setIsApprovingUser(false);
+    }
+  };
+
+  const handleRejectUser = async (targetUser) => {
+    if (!canRejectUser(targetUser)) return;
+
+    try {
+      setIsRejectingUser(true);
+
+      const response = await rejectUser(targetUser.id);
+      const updatedUser = response.user;
+
+      setUsers((current) =>
+        current.map((user) => (user.id === updatedUser.id ? { ...user, ...updatedUser } : user)),
+      );
+      setViewTarget((current) =>
+        current?.id === updatedUser.id ? { ...current, ...updatedUser } : current,
+      );
+      setNotice({
+        tone: "success",
+        title: "Account rejected",
+        message: `${updatedUser.name} cannot sign in unless a new request is approved later.`,
+      });
+    } catch (error) {
+      console.error("Failed to reject user:", error);
+      setNotice({
+        tone: "danger",
+        title: "Rejection failed",
+        message: getApiErrorMessage(error, "This request could not be rejected right now."),
+      });
+    } finally {
+      setIsRejectingUser(false);
     }
   };
 
@@ -795,13 +898,6 @@ export default function UsersManagement() {
                 tone="accent"
               />
               <MetricCard
-                icon={CheckCircleOutlineOutlinedIcon}
-                value={summaryCounts.active}
-                label="Active Users"
-                helper="Enabled accounts currently allowed to sign in."
-                tone="success"
-              />
-              <MetricCard
                 icon={ArchiveOutlinedIcon}
                 value={summaryCounts.pending}
                 label="Pending Approvals"
@@ -809,11 +905,18 @@ export default function UsersManagement() {
                 tone="accent"
               />
               <MetricCard
+                icon={CheckCircleOutlineOutlinedIcon}
+                value={summaryCounts.active}
+                label="Active Users"
+                helper="Approved accounts currently allowed to sign in."
+                tone="success"
+              />
+              <MetricCard
                 icon={AdminPanelSettingsOutlinedIcon}
-                value={summaryCounts.elevated}
-                label="Elevated Roles"
-                helper="Owner access holders."
-                tone="neutral"
+                value={summaryCounts.rejected}
+                label="Rejected"
+                helper="Requests denied by an owner."
+                tone="danger"
               />
             </div>
           </section>
@@ -827,6 +930,22 @@ export default function UsersManagement() {
                   manage.
                 </p>
               </div>
+            </div>
+
+            <div className="users-status-tabs" role="tablist" aria-label="Account status views">
+              {statusFilterTabs.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="tab"
+                  aria-selected={statusFilter === option.value}
+                  className={`users-status-tab ${statusFilter === option.value ? "is-active" : ""}`}
+                  onClick={() => setStatusFilter(option.value)}
+                >
+                  <span>{option.label}</span>
+                  <strong>{option.count}</strong>
+                </button>
+              ))}
             </div>
 
             <div className="fleet-toolbar">
@@ -846,24 +965,6 @@ export default function UsersManagement() {
                     autoComplete="off"
                   />
                 </div>
-              </div>
-
-              <div className="fleet-field">
-                <label className="fleet-label" htmlFor="user-status-filter">
-                  Status
-                </label>
-                <select
-                  id="user-status-filter"
-                  className="fleet-select"
-                  value={statusFilter}
-                  onChange={(event) => setStatusFilter(event.target.value)}
-                >
-                  {STATUS_FILTER_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
               </div>
 
               <div className="fleet-field">
@@ -1060,7 +1161,15 @@ export default function UsersManagement() {
                     {filteredUsers.map((user) => (
                       <div
                         key={user.id}
-                        className={`fleet-table-row ${isPendingApproval(user) ? "pending" : user.isActive === false ? "inactive" : ""}`}
+                        className={`fleet-table-row ${
+                          isPendingApproval(user)
+                            ? "pending"
+                            : isRejectedApproval(user)
+                              ? "rejected"
+                              : user.isActive === false
+                                ? "inactive"
+                                : ""
+                        }`}
                       >
                         <div className="fleet-table-cell" data-label="Name">
                           <div className="fleet-cell-stack">
@@ -1092,6 +1201,16 @@ export default function UsersManagement() {
                           <div className="users-action-group">
                             <button
                               type="button"
+                              className="users-view-action"
+                              onClick={() => openViewPanel(user)}
+                              title={`View ${user.name}`}
+                              aria-label={`View ${user.name}`}
+                            >
+                              <VisibilityOutlinedIcon sx={{ fontSize: 18 }} />
+                              View
+                            </button>
+                            <button
+                              type="button"
                               className="users-role-action"
                               onClick={() => openRolePanel(user)}
                               disabled={!canChangeRole(user)}
@@ -1102,17 +1221,30 @@ export default function UsersManagement() {
                               Change Role
                             </button>
                             {isPendingApproval(user) ? (
-                              <button
-                                type="button"
-                                className="users-approve-action"
-                                onClick={() => handleApproveUser(user)}
-                                disabled={isApprovingUser || !canApproveUser(user)}
-                                title="Approve this signup request"
-                                aria-label={`Approve ${user.name}`}
-                              >
-                                <CheckCircleOutlineOutlinedIcon sx={{ fontSize: 18 }} />
-                                {isApprovingUser ? "Approving..." : "Approve"}
-                              </button>
+                              <>
+                                <button
+                                  type="button"
+                                  className="users-approve-action"
+                                  onClick={() => handleApproveUser(user)}
+                                  disabled={isApprovingUser || isRejectingUser || !canApproveUser(user)}
+                                  title="Approve this signup request"
+                                  aria-label={`Approve ${user.name}`}
+                                >
+                                  <CheckCircleOutlineOutlinedIcon sx={{ fontSize: 18 }} />
+                                  {isApprovingUser ? "Approving..." : "Approve"}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="users-reject-action"
+                                  onClick={() => handleRejectUser(user)}
+                                  disabled={isApprovingUser || isRejectingUser || !canRejectUser(user)}
+                                  title="Reject this signup request"
+                                  aria-label={`Reject ${user.name}`}
+                                >
+                                  <ErrorOutlineOutlinedIcon sx={{ fontSize: 18 }} />
+                                  {isRejectingUser ? "Rejecting..." : "Reject"}
+                                </button>
+                              </>
                             ) : (
                               <button
                                 type="button"
@@ -1189,6 +1321,65 @@ export default function UsersManagement() {
               </div>
             </div>
           </section>
+
+          <DrawerShell
+            open={Boolean(viewTarget)}
+            title="Account Details"
+            subtitle={
+              viewTarget
+                ? `${viewTarget.name} - ${getAccountLabel(viewTarget)}`
+                : "Review account access details."
+            }
+            onClose={closeViewPanel}
+            footer={
+              <button type="button" className="fleet-btn fleet-btn-secondary" onClick={closeViewPanel}>
+                Close
+              </button>
+            }
+          >
+            {viewTarget ? (
+              <div className="users-review-panel">
+                <div className="users-review-summary">
+                  <div>
+                    <p className="users-review-label">Account</p>
+                    <h3>{viewTarget.name}</h3>
+                    <p>{viewTarget.email}</p>
+                  </div>
+                  <StatusBadge
+                    label={getAccountLabel(viewTarget)}
+                    tone={getAccountTone(viewTarget)}
+                  />
+                </div>
+
+                <div className="users-review-grid">
+                  <div className="users-review-field">
+                    <span>Requested Role</span>
+                    <strong>{formatRoleLabel(viewTarget.role)}</strong>
+                  </div>
+                  <div className="users-review-field">
+                    <span>Registration Date</span>
+                    <strong>{formatDate(viewTarget.createdAt)}</strong>
+                  </div>
+                  <div className="users-review-field">
+                    <span>Last Login</span>
+                    <strong>{formatDate(viewTarget.lastLoginAt)}</strong>
+                  </div>
+                  <div className="users-review-field">
+                    <span>Approved At</span>
+                    <strong>{formatDate(viewTarget.approvedAt)}</strong>
+                  </div>
+                  <div className="users-review-field">
+                    <span>Rejected At</span>
+                    <strong>{formatDate(viewTarget.rejectedAt)}</strong>
+                  </div>
+                  <div className="users-review-field">
+                    <span>Status</span>
+                    <strong>{getAccountLabel(viewTarget)}</strong>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </DrawerShell>
 
           <DrawerShell
             open={Boolean(passwordTarget)}

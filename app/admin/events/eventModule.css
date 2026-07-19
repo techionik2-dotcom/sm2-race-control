@@ -45,6 +45,52 @@
   max-width: 72ch;
 }
 
+.event-back-widget {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.2rem;
+  margin-bottom: 0.95rem;
+  padding: 0.42rem 0.72rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #dce3ee;
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.event-back-widget span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.event-back-widget:hover,
+.event-back-widget:focus-visible {
+  border-color: rgba(240, 83, 35, 0.36);
+  background: rgba(240, 83, 35, 0.12);
+  color: #ffffff;
+  transform: translateX(-1px);
+  box-shadow: 0 8px 20px rgba(240, 83, 35, 0.12);
+  outline: none;
+}
+
 .admin-page-eyebrow {
   display: inline-flex;
   align-items: center;
@@ -1341,11 +1387,71 @@
 }
 
 .race-driver-card {
-  display: grid;
-  gap: 0.35rem;
+  position: relative;
   min-height: 124px;
   border-radius: 16px;
-  padding: 1rem;
+  padding: 0;
+  overflow: hidden;
+}
+
+.race-driver-card-main {
+  width: 100%;
+  min-height: 124px;
+  display: grid;
+  gap: 0.35rem;
+  padding: 1rem 2.55rem 1rem 1rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.race-driver-card-main:focus-visible {
+  outline: 2px solid rgba(240, 83, 35, 0.75);
+  outline-offset: -4px;
+}
+
+.race-driver-remove {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  z-index: 2;
+  width: 1.65rem;
+  height: 1.65rem;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 91, 91, 0.35);
+  background: rgba(255, 91, 91, 0.1);
+  color: #ffb3b3;
+  font-size: 1.1rem;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.race-driver-remove:hover:not(:disabled),
+.race-driver-remove:focus-visible {
+  border-color: rgba(255, 91, 91, 0.72);
+  background: rgba(255, 91, 91, 0.2);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(255, 59, 48, 0.16);
+  outline: none;
+}
+
+.race-driver-remove:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  transform: none;
+  box-shadow: none;
 }
 
 .race-driver-card-top,
@@ -1375,6 +1481,68 @@
 .review-session-grid strong {
   color: var(--color-text);
   font-weight: 800;
+}
+
+.race-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgba(0, 0, 0, 0.58);
+  backdrop-filter: blur(10px);
+}
+
+.race-confirm-dialog {
+  width: min(100%, 420px);
+  display: grid;
+  gap: 0.9rem;
+  padding: 1.2rem;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 91, 91, 0.22);
+  background:
+    radial-gradient(circle at top left, rgba(255, 91, 91, 0.16), transparent 42%),
+    rgba(18, 18, 18, 0.98);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.42);
+}
+
+.race-confirm-icon {
+  width: 2.6rem;
+  height: 2.6rem;
+  display: grid;
+  place-items: center;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(255, 91, 91, 0.35);
+  background: rgba(255, 91, 91, 0.12);
+  color: #ffb3b3;
+  font-size: 1.25rem;
+  font-weight: 950;
+}
+
+.race-confirm-dialog h3,
+.race-confirm-dialog p {
+  margin: 0;
+}
+
+.race-confirm-dialog h3 {
+  color: var(--color-text);
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+.race-confirm-dialog p {
+  color: var(--color-text-light);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.race-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 0.35rem;
 }
 
 .schedule-stepper {

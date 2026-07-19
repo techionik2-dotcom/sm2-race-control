@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -112,7 +113,13 @@ def create_owner_user(
     current_user: User = Depends(require_roles(UserRole.OWNER)),
 ) -> User:
     try:
-        return create_user(db, user_in, role=user_in.role)
+        created_user = create_user(db, user_in, role=user_in.role)
+        created_user.approved_at = datetime.now(timezone.utc)
+        created_user.approved_by_id = current_user.id
+        db.add(created_user)
+        db.commit()
+        db.refresh(created_user)
+        return created_user
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
 
@@ -130,8 +137,67 @@ def approve_user(
             detail="User not found",
         )
 
+    if target_user.id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You cannot approve your own account.",
+        )
+
+    if target_user.approval_status != UserApprovalStatus.PENDING:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only pending accounts can be approved.",
+        )
+
     target_user.approval_status = UserApprovalStatus.APPROVED
     target_user.is_active = True
+    target_user.approved_at = datetime.now(timezone.utc)
+    target_user.approved_by_id = current_user.id
+    target_user.rejected_at = None
+    target_user.rejected_by_id = None
+    db.add(target_user)
+    db.commit()
+    db.refresh(target_user)
+    return target_user
+
+
+@router.patch("/{user_id}/reject", response_model=UserRead)
+def reject_user(
+    user_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.OWNER)),
+) -> User:
+    target_user = db.get(User, user_id)
+    if target_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    if target_user.id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You cannot reject your own account.",
+        )
+
+    if target_user.role == UserRole.OWNER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Owner accounts cannot be rejected.",
+        )
+
+    if target_user.approval_status != UserApprovalStatus.PENDING:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only pending accounts can be rejected.",
+        )
+
+    target_user.approval_status = UserApprovalStatus.REJECTED
+    target_user.is_active = False
+    target_user.rejected_at = datetime.now(timezone.utc)
+    target_user.rejected_by_id = current_user.id
+    target_user.approved_at = None
+    target_user.approved_by_id = None
     db.add(target_user)
     db.commit()
     db.refresh(target_user)

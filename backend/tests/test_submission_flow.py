@@ -11,15 +11,19 @@ from fastapi import BackgroundTasks, HTTPException
 
 from app.api.v1.endpoints import submissions as submissions_endpoints
 from app.core import config as config_module
-from app.core.enums import SubmissionStatus, TireInventoryStatus
+from app.core.enums import RunGroupCode, SubmissionStatus, TireInventoryStatus
+from app.models.driver import Driver
+from app.models.event import Event
+from app.models.run_group import RunGroup
 from app.models.structured_notes import TireInventory
+from app.models.vehicle import Vehicle
 from app.services import image_analysis_service
 from app.services import ocr_service
 from app.services import submission_delivery_service as delivery_service
 from app.services import make_webhook_service as make_service
 from app.services import submission_ingest_service as ingest_service
 from app.services import submission_payload_service as payload_service
-from app.schemas.submission import OcrPreviewCreate, SubmissionUpdate
+from app.schemas.submission import OcrPreviewCreate, SubmissionCreate, SubmissionUpdate
 
 PNG_SIGNATURE_BASE64 = "iVBORw0KGgo="
 JPEG_SIGNATURE_BASE64 = "/9j/AA=="
@@ -835,6 +839,152 @@ def test_submission_delivery_outbox_enqueues_and_completes(monkeypatch):
     assert submission.error_message is None
     assert sent_calls == [(submission.submission_ref, 77)]
     assert db.outbox_row["delivery_status"] == "DELIVERED"
+
+
+def test_submission_delivery_marks_sent_without_outbox_when_webhook_disabled(monkeypatch):
+    submission = SimpleNamespace(
+        id=uuid4(),
+        submission_ref="SEB-20260719-0549-JFB-S1-NO-WEBHOOK",
+        correlation_id="corr-no-webhook",
+        status=SubmissionStatus.PENDING,
+        error_message=None,
+    )
+    db = _DeliverySession(submission)
+
+    monkeypatch.setattr(delivery_service.settings, "make_webhook_url", None)
+    monkeypatch.setattr(
+        delivery_service,
+        "_fetch_outbox",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("disabled webhook delivery should not read the outbox")
+        ),
+    )
+
+    result = delivery_service.process_submission_delivery(db, submission.id)
+
+    assert result is submission
+    assert submission.status == SubmissionStatus.SENT
+    assert submission.error_message is None
+    assert not any("submission_delivery_outbox" in sql.lower() for sql, _params in db.executed)
+
+
+def test_create_submission_saves_note_when_delivery_enqueue_fails(monkeypatch):
+    created_by_id = uuid4()
+    event = Event(
+        id=uuid4(),
+        name="Sebring Race Weekend - Client Demo",
+        track="Sebring International Raceway",
+        start_date=_dt(2026, 6, 30),
+        end_date=_dt(2027, 7, 3),
+        created_by_id=created_by_id,
+        is_active=True,
+    )
+    run_group = RunGroup(
+        id=uuid4(),
+        event_id=event.id,
+        raw_text="RED",
+        normalized=RunGroupCode.RED,
+        created_by_id=created_by_id,
+        locked=False,
+    )
+    driver = Driver(
+        id=uuid4(),
+        driver_id="JFB",
+        driver_name="J-F Breton",
+        aliases=["J-F Breton"],
+        first_name="J-F",
+        last_name="Breton",
+        is_active=True,
+        created_by_id=created_by_id,
+    )
+    vehicle = Vehicle(
+        id=uuid4(),
+        vehicle_id="JFB-GT4-2025",
+        driver_id="JFB",
+        make="Porsche",
+        model="GT4 RS Clubsport",
+        year=2025,
+        registration_number="JFB",
+        vehicle_class="GT4",
+        is_active=True,
+    )
+    current_user = SimpleNamespace(
+        id=uuid4(),
+        name="Alex",
+        email="alex@example.com",
+        role=SimpleNamespace(value="DRIVER"),
+    )
+    db = FakeSession()
+    db.storage[(Event, event.id)] = event
+    db.storage[(RunGroup, run_group.id)] = run_group
+    background_tasks = BackgroundTasks()
+
+    monkeypatch.setattr(submissions_endpoints.settings, "make_webhook_url", "https://make.example/webhook")
+    monkeypatch.setattr(submissions_endpoints, "_ensure_unique_submission_ref", lambda _db, value: value)
+    monkeypatch.setattr(submissions_endpoints, "_ensure_unique_correlation_id", lambda _db, value: value)
+    monkeypatch.setattr(submissions_endpoints, "_validate_submission_relations", lambda *_args, **_kwargs: (driver, vehicle))
+    monkeypatch.setattr(submissions_endpoints, "should_persist_structured_submission", lambda *_args, **_kwargs: False)
+    monkeypatch.setattr(
+        submissions_endpoints,
+        "enqueue_submission_delivery",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("outbox table missing")),
+    )
+    monkeypatch.setattr(
+        submissions_endpoints,
+        "_load_submission",
+        lambda loaded_db, _submission_id: loaded_db.added[-1],
+    )
+
+    result = submissions_endpoints.create_submission(
+        SubmissionCreate(
+            submission_ref="20260719-0549-JFB-S1",
+            correlation_id=str(uuid4()),
+            event_id=event.id,
+            run_group_id=run_group.id,
+            driver_id="JFB",
+            vehicle_id="JFB-GT4-2025",
+            raw_text="1st lap is Good.",
+            payload={
+                "data": {
+                    "date": "2026-07-19",
+                    "time": "05:49",
+                    "session_id": "20260719-0549-JFB-S1",
+                    "track": "Sebring International Raceway",
+                    "run_group": "RED",
+                    "driver_id": "JFB",
+                    "vehicle_id": "JFB-GT4-2025",
+                    "session_type": "Practice",
+                    "session_number": 1,
+                    "duration_min": 30,
+                    "tire_set": "Y-S3",
+                    "wheelbase_mm": 2450,
+                    "pressures": {
+                        "unit": "psi",
+                        "cold": {"fl": 22, "fr": 23, "rl": 24, "rr": 56},
+                        "hot": {"fl": None, "fr": None, "rl": None, "rr": None},
+                    },
+                }
+            },
+            analysis_result={
+                "action": "ADD_SEANCE",
+                "confidence": 0.85,
+                "run_group": "RED",
+                "submission_mode": "quick",
+            },
+        ),
+        background_tasks,
+        db,
+        current_user,
+    )
+
+    assert result.raw_text == "1st lap is Good."
+    assert result.status == SubmissionStatus.PENDING
+    assert db.commits == 1
+    assert background_tasks.tasks == []
+    assert any(
+        warning["code"] == "MAKE_WEBHOOK_ENQUEUE_FAILED"
+        for warning in result.structured_ingest_warnings
+    )
 
 
 @pytest.mark.parametrize(

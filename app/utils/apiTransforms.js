@@ -16,10 +16,11 @@ export const normalizeUser = (user) => {
 
   const id = user.id || user._id || user.user_id || user.userId || null;
   const isActive = user.is_active ?? user.isActive ?? true;
-  const approvalStatus =
+  const approvalStatus = String(
     user.approval_status ||
-    user.approvalStatus ||
-    (isActive ? "APPROVED" : "PENDING");
+      user.approvalStatus ||
+      (isActive ? "APPROVED" : "PENDING"),
+  ).toUpperCase();
 
   return {
     ...user,
@@ -28,9 +29,14 @@ export const normalizeUser = (user) => {
     role: user.role || user.userRole || "DRIVER",
     approvalStatus,
     isPendingApproval: approvalStatus === "PENDING",
+    isRejected: approvalStatus === "REJECTED",
     isActive,
     lastLoginAt: user.last_login_at || user.lastLoginAt || null,
     lastLogoutAt: user.last_logout_at || user.lastLogoutAt || null,
+    approvedAt: user.approved_at || user.approvedAt || null,
+    approvedById: user.approved_by_id || user.approvedById || null,
+    rejectedAt: user.rejected_at || user.rejectedAt || null,
+    rejectedById: user.rejected_by_id || user.rejectedById || null,
     activeEventId: user.active_event_id || user.activeEventId || null,
     createdAt: user.created_at || user.createdAt || null,
     updatedAt: user.updated_at || user.updatedAt || null,

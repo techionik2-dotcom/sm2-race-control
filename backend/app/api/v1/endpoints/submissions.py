@@ -1325,13 +1325,39 @@ def _finalize_delivery(
         )
         return final_submission or submission
 
-    enqueue_submission_delivery(
-        db,
-        submission,
-        submission_input_id=submission_input_id,
-    )
-    db.commit()
-    db.refresh(submission)
+    try:
+        enqueue_submission_delivery(
+            db,
+            submission,
+            submission_input_id=submission_input_id,
+        )
+        db.commit()
+        db.refresh(submission)
+    except Exception:
+        db.rollback()
+        if isinstance(submission.structured_ingest_warnings, list):
+            submission.structured_ingest_warnings = [
+                *submission.structured_ingest_warnings,
+                {
+                    "section": "delivery",
+                    "code": "MAKE_WEBHOOK_ENQUEUE_FAILED",
+                    "message": "The note was saved, but Make.com delivery queueing failed. Review backend delivery logs before relying on webhook delivery.",
+                },
+            ]
+        logger.exception(
+            "Submission delivery enqueue failed after canonical submission save (%s)",
+            _submission_log_summary(
+                submission_ref=submission.submission_ref,
+                correlation_id=submission.correlation_id,
+                event_id=submission.event_id,
+                run_group_id=submission.run_group_id,
+                driver_id=getattr(submission.driver, "driver_id", None),
+                vehicle_id=getattr(submission.vehicle, "vehicle_id", None),
+                current_user_id=submission.created_by_id,
+                payload=submission.payload,
+            ),
+        )
+        return submission
 
     if background_tasks is not None:
         background_tasks.add_task(
@@ -2006,12 +2032,28 @@ def create_submission(
                     },
                 ]
 
+        delivery_enqueue_available = True
         if settings.make_webhook_url:
-            enqueue_submission_delivery(
-                db,
-                submission,
-                submission_input_id=submission_input_id,
-            )
+            try:
+                enqueue_submission_delivery(
+                    db,
+                    submission,
+                    submission_input_id=submission_input_id,
+                )
+            except Exception:
+                delivery_enqueue_available = False
+                submission.structured_ingest_warnings = [
+                    *submission.structured_ingest_warnings,
+                    {
+                        "section": "delivery",
+                        "code": "MAKE_WEBHOOK_ENQUEUE_FAILED",
+                        "message": "The note was saved, but Make.com delivery queueing failed. Review backend delivery logs before relying on webhook delivery.",
+                    },
+                ]
+                logger.exception(
+                    "Submission delivery enqueue failed; continuing with canonical submission only (%s)",
+                    submission_log_summary,
+                )
 
         db.commit()
     except IntegrityError as exc:
@@ -2071,11 +2113,12 @@ def create_submission(
         )
 
     if settings.make_webhook_url:
-        background_tasks.add_task(
-            process_submission_delivery_task,
-            loaded_submission.id,
-            submission_input_id=submission_input_id,
-        )
+        if delivery_enqueue_available:
+            background_tasks.add_task(
+                process_submission_delivery_task,
+                loaded_submission.id,
+                submission_input_id=submission_input_id,
+            )
         return loaded_submission
 
     return _finalize_delivery(

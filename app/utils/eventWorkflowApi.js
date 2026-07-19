@@ -139,6 +139,15 @@ export const addEventParticipant = async (eventId, payload) => {
   }
 };
 
+export const removeEventParticipant = async (eventId, participantId) => {
+  try {
+    await axiosInstance.delete(`/events/${eventId}/participants/${participantId}`);
+    return { success: true };
+  } catch (error) {
+    unwrapError(error, "Failed to remove event participant.");
+  }
+};
+
 export const analyzeEventSchedule = async (eventId, scheduleText) => {
   try {
     const response = await axiosInstance.post(`/events/${eventId}/schedule/analyze`, {

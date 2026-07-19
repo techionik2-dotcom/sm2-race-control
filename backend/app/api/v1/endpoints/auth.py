@@ -27,7 +27,11 @@ def _issue_login_token(db: Session, user: User) -> Token:
 
     token = create_access_token(
         subject=str(user.id),
-        additional_claims={"email": user.email, "role": user.role.value},
+        additional_claims={
+            "email": user.email,
+            "role": user.role.value,
+            "approval_status": user.approval_status.value,
+        },
     )
     return Token(access_token=token)
 
@@ -61,7 +65,13 @@ def login(
     if user.approval_status == UserApprovalStatus.PENDING:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Your account is pending owner approval. Please wait for an owner to approve your request.",
+            detail="Your account is waiting for owner approval. You will be able to sign in once it has been approved.",
+        )
+
+    if user.approval_status == UserApprovalStatus.REJECTED:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This account request was rejected. Please contact the SM-2 Race Control owner for help.",
         )
 
     if not user.is_active:
@@ -88,7 +98,13 @@ def admin_login(
     if user.approval_status == UserApprovalStatus.PENDING:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="This account is pending owner approval and cannot access the owner portal yet.",
+            detail="This account is waiting for owner approval and cannot access the owner portal yet.",
+        )
+
+    if user.approval_status == UserApprovalStatus.REJECTED:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This account request was rejected. Please contact the SM-2 Race Control owner for help.",
         )
 
     if not user.is_active:

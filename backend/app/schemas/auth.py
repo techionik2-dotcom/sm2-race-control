@@ -41,6 +41,10 @@ class UserRead(TimestampedModel):
     is_active: bool
     last_login_at: datetime | None = None
     last_logout_at: datetime | None = None
+    approved_at: datetime | None = None
+    approved_by_id: UUID | None = None
+    rejected_at: datetime | None = None
+    rejected_by_id: UUID | None = None
     active_event_id: UUID | None = None
 
 

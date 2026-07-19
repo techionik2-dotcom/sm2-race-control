@@ -10,6 +10,7 @@ import {
   analyzeEventSchedule,
   confirmEventSchedule,
   getEventWeekendWorkspace,
+  removeEventParticipant,
   updateEventRaceSession,
   uploadRaceSessionAttachment,
 } from "../../../utils/eventWorkflowApi";
@@ -209,6 +210,7 @@ export default function RaceWeekendOperations({ eventId, setNotice }) {
   const [selectedParticipantId, setSelectedParticipantId] = useState("");
   const [selectedSessionId, setSelectedSessionId] = useState("");
   const [sessionDraft, setSessionDraft] = useState(null);
+  const [removeParticipantTarget, setRemoveParticipantTarget] = useState(null);
 
   const loadWeekend = useCallback(async () => {
     if (!eventId) return;
@@ -399,6 +401,40 @@ export default function RaceWeekendOperations({ eventId, setNotice }) {
       setNotice({ type: "success", message: "Driver added to this event." });
     } catch (saveError) {
       setNotice({ type: "error", message: saveError?.message || "Failed to add driver." });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const requestRemoveParticipant = (clickEvent, participant) => {
+    clickEvent.stopPropagation();
+    setRemoveParticipantTarget(participant);
+  };
+
+  const cancelRemoveParticipant = () => {
+    if (saving) return;
+    setRemoveParticipantTarget(null);
+  };
+
+  const confirmRemoveParticipant = async () => {
+    if (!removeParticipantTarget) return;
+
+    const targetName = removeParticipantTarget.driver?.driverName || "Driver";
+
+    try {
+      setSaving(true);
+      await removeEventParticipant(eventId, removeParticipantTarget.id);
+      setRemoveParticipantTarget(null);
+
+      if (selectedParticipantId === removeParticipantTarget.id) {
+        setSelectedParticipantId("");
+        setSelectedSessionId("");
+      }
+
+      await loadWeekend();
+      setNotice({ type: "success", message: `${targetName} removed from this event.` });
+    } catch (removeError) {
+      setNotice({ type: "error", message: removeError?.message || "Failed to remove driver." });
     } finally {
       setSaving(false);
     }
@@ -679,26 +715,40 @@ export default function RaceWeekendOperations({ eventId, setNotice }) {
                   : "Needs Setup";
 
                 return (
-                  <button
+                  <article
                     key={participant.id}
-                    type="button"
                     className="race-driver-card"
-                    onClick={() => {
-                      setSelectedParticipantId(participant.id);
-                      setSelectedSessionId(nextSession?.id || "");
-                      setActiveTab("Sessions");
-                    }}
                   >
-                    <div className="race-driver-card-top">
-                      <strong>{participant.driver?.driverName || "Driver"}</strong>
-                      <StatusBadge label={readinessLabel} tone={readinessTone} />
-                    </div>
-                    <span>{getVehicleLabel(participant.vehicle)}</span>
-                    <div className="race-driver-card-meta">
-                      <small>{completedSessions}/{participant.sessions.length} sessions complete</small>
-                      <small>Next: {nextSession?.title || "Confirm schedule"}</small>
-                    </div>
-                  </button>
+                    <button
+                      type="button"
+                      className="race-driver-remove"
+                      onClick={(event) => requestRemoveParticipant(event, participant)}
+                      disabled={saving}
+                      aria-label={`Remove ${participant.driver?.driverName || "driver"} from event`}
+                      title={`Remove ${participant.driver?.driverName || "driver"} from event`}
+                    >
+                      &times;
+                    </button>
+                    <button
+                      type="button"
+                      className="race-driver-card-main"
+                      onClick={() => {
+                        setSelectedParticipantId(participant.id);
+                        setSelectedSessionId(nextSession?.id || "");
+                        setActiveTab("Sessions");
+                      }}
+                    >
+                      <div className="race-driver-card-top">
+                        <strong>{participant.driver?.driverName || "Driver"}</strong>
+                        <StatusBadge label={readinessLabel} tone={readinessTone} />
+                      </div>
+                      <span>{getVehicleLabel(participant.vehicle)}</span>
+                      <div className="race-driver-card-meta">
+                        <small>{completedSessions}/{participant.sessions.length} sessions complete</small>
+                        <small>Next: {nextSession?.title || "Confirm schedule"}</small>
+                      </div>
+                    </button>
+                  </article>
                 );
               })}
               {!participants.length ? <div className="workspace-callout">Add drivers to start building this race weekend.</div> : null}
@@ -1031,6 +1081,50 @@ export default function RaceWeekendOperations({ eventId, setNotice }) {
               </div>
             ) : null}
           </div>
+        </div>
+      ) : null}
+
+      {removeParticipantTarget ? (
+        <div
+          className="race-confirm-overlay"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              cancelRemoveParticipant();
+            }
+          }}
+        >
+          <section
+            className="race-confirm-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="race-remove-driver-title"
+          >
+            <div className="race-confirm-icon" aria-hidden="true">!</div>
+            <h3 id="race-remove-driver-title">Remove driver from event?</h3>
+            <p>
+              {removeParticipantTarget.driver?.driverName || "This driver"} will be removed from
+              this event. Any sessions and files created for this event driver will also be removed.
+            </p>
+            <div className="race-confirm-actions">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={cancelRemoveParticipant}
+                disabled={saving}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={confirmRemoveParticipant}
+                disabled={saving}
+              >
+                {saving ? "Removing..." : "Remove Driver"}
+              </button>
+            </div>
+          </section>
         </div>
       ) : null}
     </section>

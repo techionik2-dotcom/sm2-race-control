@@ -23,6 +23,12 @@ def ensure_canonical_owner_access(db: Session, user: User | None) -> User | None
     if not user.is_active:
         user.is_active = True
         changed = True
+    if getattr(user, "rejected_at", None) is not None:
+        user.rejected_at = None
+        changed = True
+    if getattr(user, "rejected_by_id", None) is not None:
+        user.rejected_by_id = None
+        changed = True
 
     if changed:
         db.add(user)
@@ -42,7 +48,16 @@ def create_user(
     email = user_in.email.lower()
     existing = db.scalar(select(User).where(User.email == email))
     if existing:
-        raise ValueError("User already exists")
+        existing = ensure_canonical_owner_access(db, existing)
+        if existing.approval_status == UserApprovalStatus.PENDING:
+            raise ValueError("An account for this email is already waiting for owner approval.")
+        if existing.approval_status == UserApprovalStatus.REJECTED:
+            raise ValueError(
+                "An account request for this email was rejected. Please contact the SM-2 Race Control owner."
+            )
+        if not existing.is_active:
+            raise ValueError("An account for this email already exists but is inactive. Please contact an owner.")
+        raise ValueError("An account for this email already exists. Please sign in.")
 
     next_approval_status = (
         approval_status

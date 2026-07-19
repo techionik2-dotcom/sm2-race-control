@@ -7,6 +7,7 @@ from uuid import uuid4
 import pytest
 from fastapi import HTTPException
 
+from app.api import deps as auth_deps
 from app.api.v1.endpoints import auth as auth_endpoints
 from app.api.v1.endpoints import users as users_endpoints
 from app.core.enums import UserApprovalStatus, UserRole
@@ -36,6 +37,17 @@ class DummySession:
         return self.scalar_result
 
 
+class TokenSession:
+    def __init__(self, user):
+        self.user = user
+
+    def scalar(self, _query):
+        return None
+
+    def get(self, _model, _id):
+        return self.user
+
+
 def build_user(role: UserRole) -> SimpleNamespace:
     return SimpleNamespace(
         id=uuid4(),
@@ -44,6 +56,10 @@ def build_user(role: UserRole) -> SimpleNamespace:
         approval_status=UserApprovalStatus.APPROVED,
         last_login_at=None,
         last_logout_at=None,
+        approved_at=None,
+        approved_by_id=None,
+        rejected_at=None,
+        rejected_by_id=None,
         is_active=True,
     )
 
@@ -74,7 +90,23 @@ def test_login_rejects_pending_signup(monkeypatch):
         auth_endpoints.login(UserLogin(email=user.email, password="password123"), session)
 
     assert exc_info.value.status_code == 403
-    assert "pending owner approval" in exc_info.value.detail.lower()
+    assert "waiting for owner approval" in exc_info.value.detail.lower()
+    assert session.commits == 0
+
+
+def test_login_rejects_rejected_signup(monkeypatch):
+    user = build_user(UserRole.MECHANIC)
+    user.approval_status = UserApprovalStatus.REJECTED
+    user.is_active = False
+    session = DummySession()
+
+    monkeypatch.setattr(auth_endpoints, "authenticate_user", lambda *_args, **_kwargs: user)
+
+    with pytest.raises(HTTPException) as exc_info:
+        auth_endpoints.login(UserLogin(email=user.email, password="password123"), session)
+
+    assert exc_info.value.status_code == 403
+    assert "rejected" in exc_info.value.detail.lower()
     assert session.commits == 0
 
 
@@ -104,14 +136,51 @@ def test_admin_can_approve_pending_user():
     pending_user = build_user(UserRole.MECHANIC)
     pending_user.approval_status = UserApprovalStatus.PENDING
     pending_user.is_active = False
+    owner_user = build_user(UserRole.OWNER)
     session = DummySession(scalar_result=pending_user)
 
-    approved_user = users_endpoints.approve_user(pending_user.id, session)
+    approved_user = users_endpoints.approve_user(pending_user.id, session, owner_user)
 
     assert approved_user.is_active is True
     assert approved_user.approval_status == UserApprovalStatus.APPROVED
+    assert approved_user.approved_at is not None
+    assert approved_user.approved_by_id == owner_user.id
     assert session.commits == 1
     assert pending_user in session.added
+
+
+def test_admin_can_reject_pending_user():
+    pending_user = build_user(UserRole.MECHANIC)
+    pending_user.approval_status = UserApprovalStatus.PENDING
+    pending_user.is_active = False
+    owner_user = build_user(UserRole.OWNER)
+    session = DummySession(scalar_result=pending_user)
+
+    rejected_user = users_endpoints.reject_user(pending_user.id, session, owner_user)
+
+    assert rejected_user.is_active is False
+    assert rejected_user.approval_status == UserApprovalStatus.REJECTED
+    assert rejected_user.rejected_at is not None
+    assert rejected_user.rejected_by_id == owner_user.id
+    assert session.commits == 1
+    assert pending_user in session.added
+
+
+def test_pending_user_token_is_rejected_by_current_user_dependency(monkeypatch):
+    pending_user = build_user(UserRole.MECHANIC)
+    pending_user.approval_status = UserApprovalStatus.PENDING
+    pending_user.is_active = False
+
+    monkeypatch.setattr(
+        auth_deps,
+        "decode_access_token",
+        lambda _token: {"jti": "jti-123", "sub": str(pending_user.id)},
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        auth_deps.get_current_user(TokenSession(pending_user), "signed-token")
+
+    assert exc_info.value.status_code == 401
 
 
 def test_admin_login_updates_audit_timestamp_and_returns_token(monkeypatch):

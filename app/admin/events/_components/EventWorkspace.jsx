@@ -382,6 +382,15 @@ export default function EventWorkspace() {
         <div className="admin-page-shell">
           <header className="admin-page-header">
             <div className="admin-page-header-copy">
+              <button
+                type="button"
+                className="event-back-widget"
+                onClick={() => router.push("/admin/events")}
+                aria-label="Back to events"
+              >
+                <span aria-hidden="true">‹</span>
+                Back to Events
+              </button>
               <div className="admin-page-eyebrow">Event Detail Workspace</div>
               <h1 className="admin-page-title">
                 {event ? event.name : "Run Group Setup"}

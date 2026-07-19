@@ -8,6 +8,7 @@ from app.api.deps import get_current_user, require_roles
 from app.core.database import get_db
 from app.core.enums import UserRole
 from app.models.event import Event
+from app.models.event_workflow import EventParticipant
 from app.models.run_group import RunGroup
 from app.models.user import User
 from app.schemas.event import EventCreate, EventRead, EventUpdate
@@ -199,6 +200,28 @@ def update_event_participant(
     db.commit()
     db.refresh(participant)
     return participant
+
+
+@router.delete(
+    "/{event_id}/participants/{participant_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def remove_event_participant(
+    event_id: UUID,
+    participant_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.OWNER, UserRole.ADMIN)),
+) -> None:
+    participant = db.get(EventParticipant, participant_id)
+    if participant is None or participant.event_id != event_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Event participant not found",
+        )
+
+    db.delete(participant)
+    db.commit()
+    return None
 
 
 @router.post("/{event_id}/schedule/analyze", response_model=RaceScheduleAnalyzeRead)

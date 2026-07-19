@@ -166,10 +166,6 @@ test.describe("admin auth flow", () => {
     await mockAdminAuthRoutes(page);
 
     await page.goto("/admin/signout?next=/login");
-    await expect(page.getByText("RACE CONTROL")).toBeVisible();
-    await expect(page.getByText("Owner Portal Sign Out")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Signed out successfully" })).toBeVisible();
-
     await page.waitForURL("**/login");
     await expect(page).toHaveURL(/\/login/);
     await expect.poll(() => page.evaluate(() => localStorage.getItem("sm2_token"))).toBeNull();

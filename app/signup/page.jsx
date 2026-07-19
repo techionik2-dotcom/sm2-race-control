@@ -209,7 +209,7 @@ export default function Signup() {
       });
 
       if (response?.success && response?.user) {
-        window.location.replace("/login?signup=pending");
+        window.location.replace("/registration-pending");
         return;
       }
 

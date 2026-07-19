@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.enums import UserRole
+from app.core.enums import UserApprovalStatus, UserRole
 from app.core.security import decode_access_token
 from app.models.revoked_token import RevokedToken
 from app.models.user import User
@@ -35,7 +35,10 @@ def get_current_user(
         if current_user is None:
             raise ValueError("User not found")
         current_user = ensure_canonical_owner_access(db, current_user)
-        if not current_user.is_active:
+        if (
+            not current_user.is_active
+            or current_user.approval_status != UserApprovalStatus.APPROVED
+        ):
             raise ValueError("User is inactive")
         return current_user
     except Exception:

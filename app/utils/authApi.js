@@ -166,6 +166,27 @@ export const approveUser = async (userId) => {
 };
 
 /**
+ * Reject a pending signup request from the owner area.
+ */
+export const rejectUser = async (userId) => {
+  try {
+    const response = await axiosInstance.patch(`/users/${userId}/reject`);
+
+    return {
+      success: true,
+      user: normalizeUser(response.data),
+    };
+  } catch (error) {
+    console.error("Owner user rejection API Error:", {
+      url: error.config?.url,
+      status: error.response?.status,
+      data: error.response?.data,
+    });
+    throw buildApiError(error, "Failed to reject user");
+  }
+};
+
+/**
  * Change a user's access role from the owner area.
  */
 export const updateUserRole = async (userId, role) => {

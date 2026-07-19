@@ -173,6 +173,100 @@
   height: 0.92rem;
 }
 
+.registration-pending-card {
+  width: min(100%, 460px);
+}
+
+.registration-pending-card__inner {
+  padding: 1.65rem 1.5rem 1.5rem;
+}
+
+.registration-pending-state {
+  display: grid;
+  gap: 1rem;
+  justify-items: center;
+  text-align: center;
+}
+
+.registration-pending-state__icon {
+  width: 3.4rem;
+  height: 3.4rem;
+  display: grid;
+  place-items: center;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 149, 0, 0.34);
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 149, 0, 0.24), transparent 58%),
+    rgba(255, 149, 0, 0.1);
+  color: #ffd08a;
+  box-shadow: 0 12px 28px rgba(255, 149, 0, 0.12);
+}
+
+.registration-pending-state__icon svg {
+  width: 1.65rem;
+  height: 1.65rem;
+}
+
+.registration-pending-state__title {
+  margin: 0;
+  color: #ffffff;
+  font-size: 1.35rem;
+  line-height: 1.18;
+  font-weight: 900;
+}
+
+.registration-pending-state__text {
+  margin: 0;
+  max-width: 34rem;
+  color: #b4bcc8;
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.registration-pending-status {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: 0.95rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.registration-pending-status__label {
+  color: #8f98a7;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.registration-pending-status__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.65rem;
+  padding: 0.35rem 0.72rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 149, 0, 0.32);
+  background: rgba(255, 149, 0, 0.14);
+  color: #ffd08a;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.registration-pending-button {
+  width: 100%;
+  margin-top: 0.15rem;
+  justify-content: center;
+}
+
 .signup-shell .login-hero {
   gap: 0.36rem;
   animation: signupRise 680ms cubic-bezier(0.16, 1, 0.3, 1) 90ms both;
@@ -282,6 +376,11 @@
 }
 
 @media (max-width: 480px) {
+  .registration-pending-status {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .signup-name-grid {
     grid-template-columns: 1fr;
   }
