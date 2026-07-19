@@ -1,0 +1,1 @@
+SM2RACING_SCHEMA = "sm2racing"

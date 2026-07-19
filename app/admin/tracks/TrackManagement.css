@@ -1,0 +1,123 @@
+.fleet-toolbar {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 0.9rem 1rem;
+  align-items: end;
+}
+
+.tracks-toolbar-search {
+  grid-column: 1 / -1;
+}
+
+.tracks-toolbar-status {
+  grid-column: span 2;
+  min-width: 0;
+}
+
+.tracks-toolbar-country {
+  grid-column: span 2;
+  min-width: 0;
+}
+
+.tracks-toolbar-actions-field {
+  grid-column: span 3;
+  min-width: 0;
+}
+
+.tracks-toolbar-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: nowrap;
+  width: 100%;
+  min-width: 0;
+  grid-column: span 5;
+}
+
+.tracks-toolbar-count {
+  color: #b8bcc4;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.tracks-toolbar-actions {
+  flex-wrap: nowrap;
+}
+
+.tracks-toolbar-actions .fleet-btn {
+  white-space: nowrap;
+}
+
+.tracks-preview-panel {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 1.1rem;
+  padding: 1rem 1.1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 107, 53, 0.18);
+  background: linear-gradient(135deg, rgba(255, 107, 53, 0.08), rgba(26, 26, 26, 0.96));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.tracks-preview-label {
+  margin: 0;
+  color: #ffbf9f;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+
+.tracks-preview-value {
+  color: #ffffff;
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+}
+
+.tracks-preview-note {
+  margin: 0;
+  color: #b8bcc4;
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.tracks-row-archived {
+  opacity: 0.94;
+}
+
+@media (max-width: 900px) {
+  .fleet-toolbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tracks-toolbar-search,
+  .tracks-toolbar-status,
+  .tracks-toolbar-country,
+  .tracks-toolbar-actions-field,
+  .tracks-toolbar-meta {
+    grid-column: 1 / -1;
+  }
+
+  .tracks-toolbar-meta {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .tracks-toolbar-actions {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 640px) {
+  .tracks-toolbar-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tracks-toolbar-actions .fleet-btn {
+    width: 100%;
+  }
+}

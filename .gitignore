@@ -1,0 +1,30 @@
+# dependencies
+node_modules/
+
+# build output
+.next/
+out/
+dist/
+coverage/
+.vercel/
+
+# logs
+logs/
+**/logs/
+*.log
+.pytest_cache/
+
+# environment files
+.env
+.env.*
+!.env.example
+
+# editor / OS files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# python cache
+__pycache__/
+*.py[cod]

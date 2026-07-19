@@ -1,0 +1,462 @@
+.voice-submission-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(240, 83, 35, 0.14), transparent 24%),
+    radial-gradient(circle at top right, rgba(255, 149, 0, 0.1), transparent 22%),
+    linear-gradient(135deg, var(--color-primary) 0%, #090909 42%, var(--color-primary-light) 100%);
+}
+
+.voice-submission-shell {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 2rem 1rem 3rem;
+}
+
+.voice-submission-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.voice-submission-topbar-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.55rem;
+}
+
+.voice-submission-context-strip,
+.voice-submission-status-strip {
+  display: grid;
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+}
+
+.voice-submission-context-strip {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.voice-submission-context-item,
+.voice-submission-status-item,
+.voice-submission-panel,
+.voice-submission-warning-list,
+.voice-submission-success-panel,
+.voice-submission-state-card,
+.voice-submission-footer {
+  position: relative;
+  overflow: hidden;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(160deg, rgba(18, 18, 18, 0.96), rgba(10, 10, 10, 0.96));
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.24);
+}
+
+.voice-submission-context-item,
+.voice-submission-status-item {
+  padding: 0.9rem 1rem;
+}
+
+.voice-submission-context-item span,
+.voice-submission-status-item span,
+.voice-submission-panel-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #ffb08c;
+}
+
+.voice-submission-context-item strong,
+.voice-submission-status-item strong {
+  display: block;
+  margin-top: 0.55rem;
+  color: var(--color-text);
+  font-size: 1.02rem;
+  line-height: 1.22;
+}
+
+.voice-submission-status-strip {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.voice-submission-status-item {
+  background:
+    radial-gradient(circle at top right, rgba(255, 149, 0, 0.08), transparent 48%),
+    rgba(14, 14, 14, 0.9);
+}
+
+.voice-submission-status-note,
+.voice-submission-banner,
+.voice-submission-state-card p,
+.voice-submission-footer-copy p,
+.voice-submission-success-copy p,
+.voice-submission-note-copy,
+.voice-submission-advanced-copy,
+.voice-submission-field-hint {
+  color: var(--color-text-light);
+  line-height: 1.55;
+}
+
+.voice-submission-status-note {
+  margin: 0 0 1rem;
+  padding: 0 0.25rem;
+}
+
+.voice-submission-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  margin-bottom: 0.9rem;
+  padding: 0.95rem 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(16, 16, 16, 0.88);
+  color: var(--color-text);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+}
+
+.voice-submission-banner svg {
+  font-size: 1.1rem;
+  margin-top: 0.1rem;
+  flex-shrink: 0;
+}
+
+.voice-submission-banner.neutral {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(22, 22, 22, 0.9);
+}
+
+.voice-submission-banner.warning {
+  border-color: rgba(255, 149, 0, 0.22);
+  background:
+    radial-gradient(circle at top right, rgba(255, 149, 0, 0.12), transparent 46%),
+    rgba(30, 20, 10, 0.96);
+}
+
+.voice-submission-banner.danger {
+  border-color: rgba(255, 59, 48, 0.24);
+  background:
+    radial-gradient(circle at top right, rgba(255, 59, 48, 0.12), transparent 46%),
+    rgba(34, 12, 12, 0.96);
+}
+
+.voice-submission-banner.success {
+  border-color: rgba(52, 199, 89, 0.22);
+  background:
+    radial-gradient(circle at top right, rgba(52, 199, 89, 0.12), transparent 46%),
+    rgba(12, 28, 18, 0.96);
+}
+
+.voice-submission-main-grid {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.voice-submission-panel {
+  padding: 1.1rem 1.15rem 1.2rem;
+}
+
+.voice-submission-panel::before,
+.voice-submission-success-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.voice-submission-panel::before {
+  background: radial-gradient(circle at top right, rgba(240, 83, 35, 0.11), transparent 54%);
+}
+
+.voice-submission-panel-compact::before {
+  background: radial-gradient(circle at top right, rgba(255, 149, 0, 0.12), transparent 54%);
+}
+
+.voice-submission-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.voice-submission-panel-head h2,
+.voice-submission-footer-copy h3,
+.voice-submission-warning-list h3,
+.voice-submission-success-copy h2,
+.voice-submission-state-card h1 {
+  margin: 0.3rem 0 0;
+  color: var(--color-text);
+}
+
+.voice-submission-form-grid {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.voice-submission-form-grid-minimal {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.voice-submission-form-grid-advanced {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 0.9rem;
+}
+
+.voice-submission-field {
+  min-width: 0;
+}
+
+.voice-submission-field-wide {
+  grid-column: 1 / -1;
+}
+
+.voice-submission-field label {
+  display: block;
+  margin-bottom: 0.55rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-light);
+}
+
+.voice-submission-inline-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.7rem;
+  align-items: center;
+}
+
+.voice-submission-field-error {
+  margin: 0.5rem 0 0;
+  color: #ff9e99;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.voice-submission-field-hint {
+  margin: 0.45rem 0 0;
+  font-size: 0.82rem;
+}
+
+.voice-submission-advanced-details {
+  margin-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 0.9rem;
+}
+
+.voice-submission-advanced-details summary {
+  cursor: pointer;
+  list-style: none;
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+.voice-submission-advanced-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.voice-submission-advanced-copy {
+  margin: 0.7rem 0 0;
+}
+
+.voice-submission-composer {
+  margin: 0;
+}
+
+.voice-submission-note-copy {
+  margin-bottom: 0.8rem;
+}
+
+.voice-submission-note-copy code,
+.voice-submission-success-copy code {
+  font-family: inherit;
+  color: #ffb08c;
+}
+
+.voice-submission-note-textarea {
+  min-height: 130px;
+}
+
+.voice-submission-warning-list {
+  padding: 1rem 1.1rem 1.05rem;
+  margin-bottom: 1rem;
+}
+
+.voice-submission-warning-list ul {
+  margin: 0.7rem 0 0 1.1rem;
+  color: var(--color-text-light);
+  line-height: 1.55;
+}
+
+.voice-submission-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 1.15rem 1.2rem;
+  background:
+    radial-gradient(circle at top right, rgba(255, 149, 0, 0.12), transparent 52%),
+    linear-gradient(160deg, rgba(18, 18, 18, 0.96), rgba(10, 10, 10, 0.96));
+}
+
+.voice-submission-footer-copy {
+  max-width: 62ch;
+}
+
+.voice-submission-footer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.7rem;
+}
+
+.voice-submission-success-panel {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.2rem;
+  background:
+    radial-gradient(circle at top right, rgba(52, 199, 89, 0.14), transparent 46%),
+    linear-gradient(160deg, rgba(12, 26, 18, 0.98), rgba(10, 12, 10, 0.98));
+  border-color: rgba(52, 199, 89, 0.18);
+}
+
+.voice-submission-success-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+  width: min(100%, 520px);
+}
+
+.voice-submission-link-card {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  width: 100%;
+  padding: 1rem 1.05rem;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(14, 14, 14, 0.86);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease;
+}
+
+.voice-submission-link-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 149, 0, 0.28);
+  background: rgba(20, 20, 20, 0.94);
+}
+
+.voice-submission-link-icon {
+  width: 2.8rem;
+  height: 2.8rem;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: rgba(255, 149, 0, 0.14);
+  color: #ffb08c;
+  flex-shrink: 0;
+}
+
+.voice-submission-link-icon.accent {
+  background: rgba(240, 83, 35, 0.16);
+}
+
+.voice-submission-link-icon.neutral {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text);
+}
+
+.voice-submission-link-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.voice-submission-link-copy span {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.voice-submission-link-copy strong {
+  color: var(--color-text);
+  line-height: 1.2;
+}
+
+.voice-submission-state-card {
+  max-width: 760px;
+  margin: 3rem auto 0;
+  padding: 2rem;
+  text-align: center;
+}
+
+.voice-submission-state-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+@media (max-width: 980px) {
+  .voice-submission-topbar,
+  .voice-submission-footer,
+  .voice-submission-success-panel {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .voice-submission-topbar-meta,
+  .voice-submission-footer-actions {
+    justify-content: flex-start;
+    max-width: none;
+  }
+
+  .voice-submission-context-strip,
+  .voice-submission-status-strip,
+  .voice-submission-success-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .voice-submission-shell {
+    padding-inline: 0.85rem;
+  }
+
+  .voice-submission-context-strip,
+  .voice-submission-status-strip,
+  .voice-submission-form-grid-minimal,
+  .voice-submission-form-grid-advanced,
+  .voice-submission-inline-field,
+  .voice-submission-success-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .voice-submission-panel,
+  .voice-submission-warning-list,
+  .voice-submission-footer {
+    padding-inline: 1rem;
+  }
+
+  .voice-submission-footer-actions .btn {
+    width: 100%;
+  }
+}

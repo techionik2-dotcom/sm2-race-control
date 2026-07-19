@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" role="img" aria-label="SM-2 checkered flag">
+  <defs>
+    <linearGradient id="poleGrad" x1="92" y1="86" x2="126" y2="420" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F4F4F4" />
+      <stop offset="0.16" stop-color="#1A1A1A" />
+      <stop offset="0.34" stop-color="#050505" />
+      <stop offset="0.56" stop-color="#2B2B2B" />
+      <stop offset="0.78" stop-color="#0B0B0B" />
+      <stop offset="1" stop-color="#343434" />
+    </linearGradient>
+    <linearGradient id="poleSheen" x1="103" y1="92" x2="115" y2="415" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.75" />
+      <stop offset="0.22" stop-color="#FFFFFF" stop-opacity="0.06" />
+      <stop offset="0.48" stop-color="#FFFFFF" stop-opacity="0.18" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.02" />
+    </linearGradient>
+    <linearGradient id="outlineGlow" x1="145" y1="108" x2="477" y2="326" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FF8A1D" />
+      <stop offset="0.5" stop-color="#FF5A1F" />
+      <stop offset="1" stop-color="#00D4FF" />
+    </linearGradient>
+    <pattern id="checks" width="72" height="72" patternUnits="userSpaceOnUse" patternTransform="skewX(-10)">
+      <rect width="36" height="36" fill="#F8F8F8" />
+      <rect x="36" width="36" height="36" fill="#1E1E1E" />
+      <rect x="0" y="36" width="36" height="36" fill="#1E1E1E" />
+      <rect x="36" y="36" width="36" height="36" fill="#F8F8F8" />
+    </pattern>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="5" result="blur" />
+      <feColorMatrix
+        in="blur"
+        type="matrix"
+        values="1 0 0 0 1
+                0 1 0 0 0.42
+                0 0 1 0 0.08
+                0 0 0 0.8 0"
+        result="orangeGlow"
+      />
+      <feMerge>
+        <feMergeNode in="orangeGlow" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <g filter="url(#glow)">
+    <path
+      d="M102 96C102 85.9 110.2 78 120.5 78C131.3 78 140 86.7 140 97.5C140 110 130.1 118 120.5 118C109.9 118 102 108.6 102 96Z"
+      fill="#121212"
+      stroke="#FF8A1D"
+      stroke-width="4"
+      stroke-linejoin="round"
+    />
+    <path
+      d="M95 103C95 95.8 98.6 89.2 104.4 85.1C110.2 81 117.8 79.8 124.6 81.9C131.4 84 136.8 89.1 139.1 95.8C141.3 102.5 140.2 109.8 136.3 115.8C131.7 122.9 123.9 127 115.7 126.6C107.5 126.2 100.2 121 96.8 113.3"
+      fill="none"
+      stroke="#FFB05C"
+      stroke-width="3"
+      stroke-linecap="round"
+    />
+    <rect
+      x="96"
+      y="108"
+      width="24"
+      height="318"
+      rx="12"
+      fill="url(#poleGrad)"
+      stroke="#FF7A00"
+      stroke-width="4"
+    />
+    <rect
+      x="103"
+      y="113"
+      width="5"
+      height="306"
+      rx="2.5"
+      fill="url(#poleSheen)"
+      opacity="0.85"
+    />
+    <path
+      d="M143 114C170 119 194 109 221 101C252 92 282 92 310 102C338 112 362 133 388 144C414 155 445 157 474 149V329C445 337 416 337 390 327C360 315 337 292 307 283C278 274 247 278 219 287C191 296 169 309 143 309Z"
+      fill="url(#checks)"
+      stroke="url(#outlineGlow)"
+      stroke-width="6"
+      stroke-linejoin="round"
+    />
+    <path
+      d="M143 114C170 119 194 109 221 101C252 92 282 92 310 102C338 112 362 133 388 144C414 155 445 157 474 149"
+      fill="none"
+      stroke="#FFB05C"
+      stroke-width="4"
+      stroke-linecap="round"
+    />
+    <path
+      d="M143 309C169 309 191 296 219 287C247 278 278 274 307 283C337 292 360 315 390 327C416 337 445 337 474 329"
+      fill="none"
+      stroke="#FFB05C"
+      stroke-width="4"
+      stroke-linecap="round"
+    />
+    <path
+      d="M160 130C198 139 229 132 259 121C290 111 320 110 349 120C363 125 376 133 389 142"
+      fill="none"
+      stroke="#FFFFFF"
+      stroke-opacity="0.24"
+      stroke-width="3"
+      stroke-linecap="round"
+    />
+  </g>
+</svg>

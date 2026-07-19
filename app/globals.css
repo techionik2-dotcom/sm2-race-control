@@ -1,0 +1,482 @@
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  color-scheme: dark;
+
+  /* Modern Racing Car Theme - SM-2 */
+  --color-primary: #0a0a0a;
+  --color-primary-dark: #000000;
+  --color-primary-light: #1a1a1a;
+  --color-secondary: #1e1e2e;
+
+  /* Racing Colors */
+  --color-accent: #F05323; /* Racing Orange */
+  --color-accent-orange: #FF9500; /* Racing Orange Light */
+  --color-accent-yellow: #FFD60A; /* Checkered Flag Yellow */
+  --color-accent-blue: #007AFF; /* Racing Blue */
+  --color-accent-green: #34C759; /* Go Green */
+
+  /* Text Colors */
+  --color-text: #ffffff;
+  --color-text-light: #b0b0b0;
+  --color-text-muted: #808080;
+
+  /* Status Colors */
+  --color-success: #34C759;
+  --color-error: #FF3B30;
+  --color-warning: #FF9500;
+
+  /* Borders & Shadows */
+  --color-border: #2a2a2a;
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 0 16px rgba(255, 59, 48, 0.25);
+
+  /* shadcn/ui theme tokens */
+  --radius: 0.625rem;
+  --background: var(--color-primary);
+  --foreground: var(--color-text);
+  --card: var(--color-primary-light);
+  --card-foreground: var(--color-text);
+  --popover: var(--color-secondary);
+  --popover-foreground: var(--color-text);
+  --primary: var(--color-accent);
+  --primary-foreground: var(--color-text);
+  --secondary: var(--color-secondary);
+  --secondary-foreground: var(--color-text);
+  --muted: var(--color-primary-light);
+  --muted-foreground: var(--color-text-light);
+  --accent: var(--color-accent-orange);
+  --accent-foreground: var(--color-text);
+  --destructive: var(--color-error);
+  --destructive-foreground: var(--color-text);
+  --border: var(--color-border);
+  --input: var(--color-border);
+  --ring: var(--color-accent);
+  --chart-1: var(--color-accent);
+  --chart-2: var(--color-accent-orange);
+  --chart-3: var(--color-accent-yellow);
+  --chart-4: var(--color-accent-blue);
+  --chart-5: var(--color-accent-green);
+  --sidebar: var(--color-primary-light);
+  --sidebar-foreground: var(--color-text);
+  --sidebar-primary: var(--color-accent);
+  --sidebar-primary-foreground: var(--color-text);
+  --sidebar-accent: var(--color-secondary);
+  --sidebar-accent-foreground: var(--color-text);
+  --sidebar-border: var(--color-border);
+  --sidebar-ring: var(--color-accent);
+}
+
+.dark {
+  --background: var(--color-primary);
+  --foreground: var(--color-text);
+  --card: var(--color-primary-light);
+  --card-foreground: var(--color-text);
+  --popover: var(--color-secondary);
+  --popover-foreground: var(--color-text);
+  --primary: var(--color-accent);
+  --primary-foreground: var(--color-text);
+  --secondary: var(--color-secondary);
+  --secondary-foreground: var(--color-text);
+  --muted: var(--color-primary-light);
+  --muted-foreground: var(--color-text-light);
+  --accent: var(--color-accent-orange);
+  --accent-foreground: var(--color-text);
+  --destructive: var(--color-error);
+  --destructive-foreground: var(--color-text);
+  --border: var(--color-border);
+  --input: var(--color-border);
+  --ring: var(--color-accent);
+  --chart-1: var(--color-accent);
+  --chart-2: var(--color-accent-orange);
+  --chart-3: var(--color-accent-yellow);
+  --chart-4: var(--color-accent-blue);
+  --chart-5: var(--color-accent-green);
+  --sidebar: var(--color-primary-light);
+  --sidebar-foreground: var(--color-text);
+  --sidebar-primary: var(--color-accent);
+  --sidebar-primary-foreground: var(--color-text);
+  --sidebar-accent: var(--color-secondary);
+  --sidebar-accent-foreground: var(--color-text);
+  --sidebar-border: var(--color-border);
+  --sidebar-ring: var(--color-accent);
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+  background-attachment: fixed;
+  color: var(--color-text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  font-size: 14px;
+}
+
+.assistant-icon-spin {
+  transform-origin: center;
+  will-change: transform;
+  animation: assistantIconSpin 16s linear infinite;
+}
+
+@keyframes assistantIconSpin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assistant-icon-spin {
+    animation: none;
+  }
+}
+
+/* Racing Stripes Background Effect */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 2px,
+      rgba(255, 59, 48, 0.02) 2px,
+      rgba(255, 59, 48, 0.02) 4px
+    );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Utility Classes */
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  transform: translate(-50%, -50%);
+  transition: width 0.4s, height 0.4s;
+}
+
+.btn:hover::before {
+  width: 200px;
+  height: 200px;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md), var(--shadow-glow);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-orange) 100%);
+  color: var(--color-text);
+}
+
+.btn-secondary {
+  background: var(--color-primary-light);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.btn-secondary:hover {
+  border-color: var(--color-accent);
+  background: var(--color-secondary);
+}
+
+.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+}
+
+.btn-lg {
+  padding: 0.875rem 2rem;
+  font-size: 0.9375rem;
+}
+
+.input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  background: var(--color-primary-light);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-text);
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.input:focus {
+  border-color: var(--color-accent);
+  background: var(--color-secondary);
+  box-shadow: 0 0 0 3px rgba(255, 59, 48, 0.1);
+}
+
+.app-select-trigger {
+  width: 100%;
+  min-height: 46px;
+  justify-content: space-between;
+}
+
+.app-select-trigger.select-small {
+  min-height: 36px;
+}
+
+.app-select-trigger[data-placeholder] {
+  color: var(--color-text-muted);
+}
+
+.app-select-trigger:focus-visible,
+.app-select-trigger[data-state="open"] {
+  border-color: var(--color-accent);
+  background: var(--color-secondary);
+  box-shadow: 0 0 0 3px rgba(255, 59, 48, 0.1);
+}
+
+.app-select-trigger.input-error {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 3px rgba(255, 59, 48, 0.14);
+}
+
+.app-select-trigger.input-error:focus-visible,
+.app-select-trigger.input-error[data-state="open"] {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 3px rgba(255, 59, 48, 0.22);
+}
+
+.app-select-content {
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: linear-gradient(160deg, var(--color-primary-light), var(--color-secondary));
+  color: var(--color-text);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.34);
+}
+
+.app-select-content [data-position] {
+  padding: 0.35rem;
+}
+
+.app-select-item {
+  min-height: 40px;
+  border-radius: 8px;
+  color: var(--color-text);
+}
+
+.app-select-item[data-highlighted],
+.app-select-item[data-state="checked"] {
+  background: rgba(240, 83, 35, 0.16);
+  color: #fff;
+}
+
+.input::placeholder {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+
+.error-text {
+  color: var(--color-error);
+  font-size: 0.75rem;
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.error-text::before {
+  content: '⚠';
+  font-size: 0.875rem;
+}
+
+.success-text {
+  color: var(--color-success);
+  font-size: 0.75rem;
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.success-text::before {
+  content: '✓';
+  font-size: 0.875rem;
+}
+
+/* Racing Card Styles */
+.racing-card {
+  background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-secondary) 100%);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.racing-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 59, 48, 0.08), transparent);
+  transition: left 0.4s;
+}
+
+.racing-card:hover::before {
+  left: 100%;
+}
+
+.racing-card:hover {
+  border-color: var(--color-accent);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md), var(--shadow-glow);
+}
+
+/* Racing Badge */
+.racing-badge {
+  display: inline-block;
+  padding: 0.375rem 0.75rem;
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-orange) 100%);
+  color: var(--color-text);
+  border-radius: 12px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Mobile First */
+@media (min-width: 768px) {
+  .container {
+    padding: 0 1.5rem;
+  }
+
+  body {
+    font-size: 15px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    padding: 0 2rem;
+  }
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-accent);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent-orange);
+}
