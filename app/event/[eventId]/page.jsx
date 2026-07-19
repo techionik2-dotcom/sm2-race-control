@@ -16,13 +16,11 @@ import RecordVoiceOverRoundedIcon from "@mui/icons-material/RecordVoiceOverRound
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import ProtectedRoute from "../../components/ProtectedRoute";
-import ScreenBackButton from "../../components/Common/ScreenBackButton";
 import Loader from "../../components/Common/Loader";
-import StatusBadge from "../../components/Common/StatusBadge";
 import { getEventById, selectActiveEvent } from "../../utils/eventApi";
 import { getRunGroup } from "../../utils/runGroupApi";
 import {
-  formatEventDateRange,
+  formatEventDate,
   getEventLifecycle,
   getEventSubmissionState,
 } from "../../utils/eventSchedule";
@@ -76,7 +74,6 @@ const EVENT_ACTIONS = [
     key: "submit-notes",
     className: "primary",
     iconClassName: "",
-    label: "Primary",
     title: "Detailed Submission",
     description: "Open the structured driver note flow for this event.",
     hrefBuilder: (eventId) => `/event/${eventId}/notes?tab=detail`,
@@ -86,7 +83,6 @@ const EVENT_ACTIONS = [
     key: "ocr-notes",
     className: "scan",
     iconClassName: "scan",
-    label: "OCR Flow",
     title: "OCR Notes",
     description:
       "Upload setup sheets or handwritten notes, extract values, and review before submission.",
@@ -98,9 +94,8 @@ const EVENT_ACTIONS = [
     key: "voice-submission",
     className: "tertiary",
     iconClassName: "tertiary",
-    label: "Focused Flow",
     title: "Voice Submission",
-    description: "Record, transcribe, review, and finalize an OpenAI-backed voice note.",
+    description: "Record, transcribe, review, and finalize a voice note.",
     hrefBuilder: (eventId) => `/event/${eventId}/voice-submission`,
     icon: RecordVoiceOverRoundedIcon,
     testId: "event-detail-voice-submission",
@@ -109,13 +104,82 @@ const EVENT_ACTIONS = [
     key: "view-submissions",
     className: "secondary",
     iconClassName: "secondary",
-    label: "Secondary",
     title: "View Submissions",
     description: "Review captured notes, statuses, and sync history.",
     hrefBuilder: (eventId) => `/event/${eventId}/submissions`,
     icon: ReceiptLongRoundedIcon,
   },
 ];
+
+const normalizeVisibleEventName = (value) =>
+  String(value || "Active Event")
+    .replace(/\s+[\u2014\u2013-]\s+/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
+const formatEventDateRangeForDashboard = (startDate, endDate) => {
+  const start = formatEventDate(startDate);
+  const end = formatEventDate(endDate);
+
+  if (start === "-" && end === "-") return "Not scheduled";
+  if (start === "-") return end;
+  if (end === "-") return start;
+  if (start === end) return start;
+  return `${start} to ${end}`;
+};
+
+const SummaryCard = ({ tone, icon: Icon, label, value, description }) => (
+  <article className={`event-detail-summary-card ${tone}`}>
+    <div className="event-detail-summary-icon" aria-hidden="true">
+      <Icon fontSize="inherit" />
+    </div>
+    <div className="event-detail-summary-copy">
+      <div className="event-detail-summary-label">{label}</div>
+      <div className="event-detail-summary-value">{value}</div>
+      <div className="event-detail-summary-note">{description}</div>
+    </div>
+  </article>
+);
+
+const ConfiguredPill = ({ configured }) => (
+  <span className={`event-detail-configured-pill ${configured ? "ready" : "warning"}`}>
+    <CheckCircleRoundedIcon fontSize="inherit" />
+    {configured ? "CONFIGURED" : "NEEDS SETUP"}
+  </span>
+);
+
+const EventSummaryRow = ({ label, value }) => (
+  <li className="event-detail-info-row">
+    <span className="event-detail-info-label">{label}</span>
+    <span className="event-detail-info-value">{value}</span>
+  </li>
+);
+
+const ActionCard = ({ action, onSelect }) => {
+  const ActionIcon = action.icon;
+
+  return (
+    <button
+      type="button"
+      className={`event-detail-action-card ${action.className}`}
+      onClick={onSelect}
+      data-testid={action.testId}
+      aria-label={action.title}
+    >
+      <div
+        className={`event-detail-action-icon${action.iconClassName ? ` ${action.iconClassName}` : ""}`}
+        aria-hidden="true"
+      >
+        <ActionIcon fontSize="inherit" />
+      </div>
+      <div className="event-detail-action-copy">
+        <h2>{action.title}</h2>
+        <p>{action.description}</p>
+      </div>
+      <KeyboardArrowRightRoundedIcon className="event-detail-action-arrow" fontSize="inherit" aria-hidden="true" />
+    </button>
+  );
+};
 
 export default function EventDetail() {
   const router = useRouter();
@@ -274,8 +338,12 @@ export default function EventDetail() {
     );
   }
 
-  const eventTrack = event.track || event.track_name || "-";
-  const eventDates = formatEventDateRange(event.startDate || event.start_date, event.endDate || event.end_date);
+  const eventTitle = normalizeVisibleEventName(event.name);
+  const eventTrack = event.track || event.track_name || "Track not set";
+  const eventDates = formatEventDateRangeForDashboard(
+    event.startDate || event.start_date,
+    event.endDate || event.end_date,
+  );
   const eventStatus = deriveEventStatus(event);
   const submissionState = getEventSubmissionState(event);
   const runGroupValue = runGroup?.normalized || runGroup?.rawText || runGroup?.raw_text || "Not assigned yet";
@@ -308,36 +376,51 @@ export default function EventDetail() {
     ...action,
     href: action.hrefBuilder(eventId),
   }));
+  const summaryCards = [
+    {
+      tone: "track",
+      icon: PinDropRoundedIcon,
+      label: "TRACK",
+      value: eventTrack,
+      description: "Captured from the selected event.",
+    },
+    {
+      tone: "date",
+      icon: CalendarMonthRoundedIcon,
+      label: "DATE RANGE",
+      value: eventDates,
+      description: "Event window visible to drivers.",
+    },
+    {
+      tone: "status",
+      icon: eventStatus.icon === "active" ? CheckCircleRoundedIcon : PendingActionsRoundedIcon,
+      label: "STATUS",
+      value: eventStatus.label,
+      description: eventStatus.note,
+    },
+    {
+      tone: "run-group",
+      icon: DatasetRoundedIcon,
+      label: "RUN GROUP",
+      value: hasRunGroup ? runGroupValue : "Not Configured",
+      description: hasRunGroup ? "Visible exactly as drivers will see it." : "This event still needs a run group.",
+    },
+  ];
 
   return (
-      <ProtectedRoute requireDriver={true}>
+    <ProtectedRoute requireDriver={true}>
       <div className="event-detail-page">
-        <div className="event-detail-orb event-detail-orb-one" />
-        <div className="event-detail-orb event-detail-orb-two" />
-
         <div className="event-detail-shell">
           <header className="event-detail-hero">
             <div className="event-detail-hero-copy">
-              <ScreenBackButton fallbackHref="/events" label="Back" />
-
-              <div className="event-detail-eyebrow">
-                <FlagRoundedIcon fontSize="inherit" />
-                Driver Operations
-              </div>
-              <h1 className="event-detail-title">{event.name}</h1>
+              <p className="event-detail-eyebrow">ACTIVE EVENT</p>
+              <h1 className="event-detail-title">{eventTitle}</h1>
               <p className="event-detail-subtitle">
                 Review the active event, confirm your run group, and jump straight into notes or submissions.
               </p>
             </div>
 
             <div className="event-detail-hero-meta">
-              <div className="event-detail-badge-row">
-                <StatusBadge label={eventStatus.label} tone={eventStatus.tone} />
-                <StatusBadge
-                  label={hasRunGroup ? "Run Group Ready" : "Run Group Missing"}
-                  tone={hasRunGroup ? "success" : "warning"}
-                />
-              </div>
               <button type="button" className="event-detail-refresh" onClick={loadEventData} disabled={isLoading}>
                 <RefreshRoundedIcon fontSize="inherit" />
                 Refresh Event
@@ -346,117 +429,47 @@ export default function EventDetail() {
           </header>
 
           <section className="event-detail-summary-grid">
-            <article className="event-detail-summary-card track">
-              <div className="event-detail-summary-icon">
-                <PinDropRoundedIcon fontSize="inherit" />
-              </div>
-              <div className="event-detail-summary-label">Track</div>
-              <div className="event-detail-summary-value">{eventTrack}</div>
-              <div className="event-detail-summary-note">Captured from the selected event.</div>
-            </article>
-
-            <article className="event-detail-summary-card date">
-              <div className="event-detail-summary-icon">
-                <CalendarMonthRoundedIcon fontSize="inherit" />
-              </div>
-              <div className="event-detail-summary-label">Date Range</div>
-              <div className="event-detail-summary-value">{eventDates}</div>
-              <div className="event-detail-summary-note">Event window visible to drivers.</div>
-            </article>
-
-            <article className="event-detail-summary-card status">
-              <div className="event-detail-summary-icon">
-                {eventStatus.icon === "active" ? (
-                  <CheckCircleRoundedIcon fontSize="inherit" />
-                ) : (
-                  <PendingActionsRoundedIcon fontSize="inherit" />
-                )}
-              </div>
-              <div className="event-detail-summary-label">Status</div>
-              <div className="event-detail-summary-value">{eventStatus.label}</div>
-              <div className="event-detail-summary-note">{eventStatus.note}</div>
-            </article>
-
-            <article className="event-detail-summary-card run-group">
-              <div className="event-detail-summary-icon">
-                <DatasetRoundedIcon fontSize="inherit" />
-              </div>
-              <div className="event-detail-summary-label">Run Group</div>
-              <div className="event-detail-summary-value">{hasRunGroup ? runGroupValue : "Not Configured"}</div>
-              <div className="event-detail-summary-note">
-                {hasRunGroup ? "Visible exactly as drivers will see it." : "This event still needs a run group."}
-              </div>
-            </article>
+            {summaryCards.map((card) => (
+              <SummaryCard key={card.label} {...card} />
+            ))}
           </section>
 
           <section className="event-detail-panels">
             <article className={`event-detail-panel event-detail-run-group-card ${hasRunGroup ? "ready" : "warning"}`}>
-              <div className="event-detail-panel-kicker">Your Run Group</div>
-              <div className="event-detail-run-group-value">{hasRunGroup ? runGroupValue : "Not Assigned Yet"}</div>
-              <p className="event-detail-run-group-copy">
-                {hasRunGroup
-                  ? "Drivers will see this label on every note submission."
-                  : "Ask the owner to configure the event before drivers begin capturing submissions."}
-              </p>
-              <div className="event-detail-run-group-footer">
-                <StatusBadge
-                  label={hasRunGroup ? "Configured" : "Not Configured"}
-                  tone={hasRunGroup ? "success" : "warning"}
-                />
-                <span>{runGroupFooterNote}</span>
+              <div className="event-detail-panel-kicker">YOUR RUN GROUP</div>
+              <div className="event-detail-run-group-layout">
+                <div className="event-detail-run-group-badge">{hasRunGroup ? runGroupValue : "SET"}</div>
+                <div className="event-detail-run-group-copy">
+                  <p>
+                    {hasRunGroup
+                      ? "Drivers will see this label on every note submission."
+                      : "Ask the owner to configure the event before drivers begin capturing submissions."}
+                  </p>
+                  <ConfiguredPill configured={hasRunGroup} />
+                </div>
+                <div className="event-detail-run-group-ready">
+                  <FlagRoundedIcon fontSize="inherit" aria-hidden="true" />
+                  <span>{runGroupFooterNote}</span>
+                </div>
               </div>
             </article>
 
             <article className="event-detail-panel event-detail-context-card">
-              <div className="event-detail-panel-kicker">Event Summary</div>
+              <div className="event-detail-panel-kicker">EVENT SUMMARY</div>
               <ul className="event-detail-info-list">
-                <li className="event-detail-info-row">
-                  <span className="event-detail-info-label">Track</span>
-                  <span className="event-detail-info-value">{eventTrack}</span>
-                </li>
-                <li className="event-detail-info-row">
-                  <span className="event-detail-info-label">Date Range</span>
-                  <span className="event-detail-info-value">{eventDates}</span>
-                </li>
-                <li className="event-detail-info-row">
-                  <span className="event-detail-info-label">Status</span>
-                  <span className="event-detail-info-value">{eventStatus.note}</span>
-                </li>
-                <li className="event-detail-info-row">
-                  <span className="event-detail-info-label">Access</span>
-                  <span className="event-detail-info-value">{accessLabel}</span>
-                </li>
+                <EventSummaryRow label="TRACK" value={eventTrack} />
+                <EventSummaryRow label="DATE RANGE" value={eventDates} />
+                <EventSummaryRow label="STATUS" value={eventStatus.note} />
+                <EventSummaryRow label="ACCESS" value={accessLabel} />
               </ul>
               {noteBannerCopy ? <div className="event-detail-note-banner">{noteBannerCopy}</div> : null}
             </article>
           </section>
 
           <section className="event-detail-actions-grid">
-            {actionCards.map((action) => {
-              const ActionIcon = action.icon;
-
-              return (
-                <button
-                  key={action.key}
-                  type="button"
-                  className={`event-detail-action-card ${action.className}`}
-                  onClick={() => router.push(action.href)}
-                  data-testid={action.testId}
-                >
-                  <div
-                    className={`event-detail-action-icon${action.iconClassName ? ` ${action.iconClassName}` : ""}`}
-                  >
-                    <ActionIcon fontSize="inherit" />
-                  </div>
-                  <div className="event-detail-action-copy">
-                    <span className="event-detail-action-label">{action.label}</span>
-                    <h2>{action.title}</h2>
-                    <p>{action.description}</p>
-                  </div>
-                  <KeyboardArrowRightRoundedIcon className="event-detail-action-arrow" fontSize="inherit" />
-                </button>
-              );
-            })}
+            {actionCards.map((action) => (
+              <ActionCard key={action.key} action={action} onSelect={() => router.push(action.href)} />
+            ))}
           </section>
         </div>
       </div>
