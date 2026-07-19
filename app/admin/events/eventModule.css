@@ -378,6 +378,89 @@
   gap: 0.7rem;
 }
 
+.event-card-ops-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin-top: 0.85rem;
+}
+
+.event-card-ops-grid > div {
+  min-width: 0;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.065);
+  background: rgba(255, 255, 255, 0.035);
+  padding: 0.75rem 0.7rem;
+}
+
+.event-card-ops-grid strong {
+  display: block;
+  color: var(--color-text);
+  font-size: 1.28rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.event-card-ops-grid span {
+  display: block;
+  color: var(--color-text-light);
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1.3;
+  margin-top: 0.35rem;
+  text-transform: uppercase;
+}
+
+.event-card-next {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  min-height: 92px;
+  margin-top: 0.75rem;
+  border-radius: 16px;
+  border: 1px solid rgba(240, 83, 35, 0.2);
+  background: rgba(240, 83, 35, 0.075);
+  padding: 0.85rem 0.9rem;
+}
+
+.event-card-next.empty {
+  border-color: rgba(255, 149, 0, 0.18);
+  background: rgba(255, 149, 0, 0.055);
+}
+
+.event-card-next > div {
+  min-width: 0;
+  display: grid;
+  gap: 0.26rem;
+}
+
+.event-card-next-label {
+  color: #ffbf9f;
+  font-size: 0.66rem;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.event-card-next strong,
+.event-card-next small {
+  overflow-wrap: anywhere;
+}
+
+.event-card-next strong {
+  color: var(--color-text);
+  font-size: 0.94rem;
+  font-weight: 850;
+  line-height: 1.35;
+}
+
+.event-card-next small {
+  color: var(--color-text-light);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
 .admin-event-card-meta-item {
   display: flex;
   flex-direction: column;
@@ -887,6 +970,117 @@
   line-height: 1.55;
 }
 
+.event-setup-panel {
+  display: grid;
+  gap: 0.85rem;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 149, 0, 0.2);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.015)),
+    rgba(255, 149, 0, 0.055);
+  padding: 1rem;
+}
+
+.event-setup-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.85rem;
+}
+
+.event-setup-header h3 {
+  color: var(--color-text);
+  font-size: 0.96rem;
+  font-weight: 850;
+  margin: 0.22rem 0 0;
+}
+
+.event-setup-header span {
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 149, 0, 0.26);
+  background: rgba(255, 149, 0, 0.1);
+  color: #ffcf9d;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.28rem 0.62rem;
+}
+
+.event-setup-step {
+  color: #ffb08c;
+  font-size: 0.66rem;
+  font-weight: 850;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.event-setup-copy {
+  color: var(--color-text-light);
+  font-size: 0.82rem;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.event-driver-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 0.65rem;
+}
+
+.event-driver-option {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.7rem;
+  align-items: flex-start;
+  min-height: 76px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--color-text);
+  cursor: pointer;
+  padding: 0.82rem 0.9rem;
+}
+
+.event-driver-option input {
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.15rem;
+  accent-color: #ff7a1a;
+}
+
+.event-driver-option span {
+  display: grid;
+  gap: 0.22rem;
+  min-width: 0;
+}
+
+.event-driver-option strong,
+.event-driver-option small {
+  overflow-wrap: anywhere;
+}
+
+.event-driver-option strong {
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: 850;
+}
+
+.event-driver-option small {
+  color: var(--color-text-light);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.event-driver-option:has(input:checked) {
+  border-color: rgba(240, 83, 35, 0.44);
+  background: rgba(240, 83, 35, 0.13);
+}
+
+.event-setup-inline-action {
+  display: grid;
+  gap: 0.75rem;
+}
+
 .btn-danger {
   background: linear-gradient(135deg, #cf2f2f 0%, #ff5b47 100%);
   color: #fff;
@@ -961,7 +1155,7 @@
 }
 
 .race-weekend-tabs {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   margin: 1rem 0;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -1005,6 +1199,98 @@
 .race-weekend-grid {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: start;
+}
+
+.race-overview-primary {
+  min-height: 100%;
+}
+
+.race-overview-wide {
+  grid-column: 1 / -1;
+}
+
+.race-section-label {
+  color: #ffbf9f;
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.race-attention-list,
+.race-driver-summary-list,
+.event-file-list {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.race-attention-list {
+  margin-top: 1rem;
+}
+
+.race-attention-item,
+.race-driver-summary-list button,
+.event-file-row {
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-text);
+  padding: 0.9rem 0.95rem;
+}
+
+.race-attention-item,
+.race-driver-summary-list button {
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 180ms ease, background 180ms ease, transform 180ms ease;
+}
+
+.race-attention-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.race-attention-item:hover,
+.race-driver-summary-list button:hover {
+  border-color: rgba(240, 83, 35, 0.38);
+  background: rgba(240, 83, 35, 0.1);
+  transform: translateY(-1px);
+}
+
+.race-attention-item span,
+.race-driver-summary-list button span,
+.event-file-row span {
+  min-width: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.race-attention-item strong,
+.race-driver-summary-list strong,
+.event-file-row strong {
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-weight: 850;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.race-attention-item small,
+.race-driver-summary-list small,
+.event-file-row small {
+  color: var(--color-text-light);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.race-driver-summary-list button {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(110px, 0.45fr) minmax(0, 1fr);
+  gap: 0.9rem;
+  align-items: center;
 }
 
 .race-metric-grid,
@@ -1056,11 +1342,78 @@
   padding: 1rem;
 }
 
+.race-driver-card-top,
+.race-driver-card-meta,
+.event-file-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.race-driver-card-top {
+  min-width: 0;
+}
+
+.race-driver-card-top strong {
+  min-width: 0;
+}
+
+.race-driver-card-meta {
+  flex-wrap: wrap;
+  margin-top: 0.3rem;
+}
+
 .race-driver-card strong,
 .race-session-list span,
 .review-session-grid strong {
   color: var(--color-text);
   font-weight: 800;
+}
+
+.schedule-stepper {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.schedule-stepper > div {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--color-text-light);
+  min-height: 48px;
+  padding: 0.65rem 0.75rem;
+}
+
+.schedule-stepper > div.active,
+.schedule-stepper > div.complete {
+  border-color: rgba(240, 83, 35, 0.34);
+  background: rgba(240, 83, 35, 0.1);
+  color: var(--color-text);
+}
+
+.schedule-stepper span {
+  display: grid;
+  place-items: center;
+  width: 1.55rem;
+  height: 1.55rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text);
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.schedule-stepper strong {
+  font-size: 0.78rem;
+  font-weight: 850;
+  line-height: 1.25;
 }
 
 .schedule-candidate-list {
@@ -1135,6 +1488,93 @@
   margin: 0;
 }
 
+.session-context-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.session-context-strip > div {
+  min-width: 0;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.035);
+  padding: 0.85rem 0.9rem;
+}
+
+.session-context-strip span {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.session-context-strip strong {
+  display: block;
+  color: var(--color-text);
+  font-size: 0.92rem;
+  font-weight: 850;
+  line-height: 1.35;
+  margin-top: 0.35rem;
+  overflow-wrap: anywhere;
+}
+
+.carry-forward-panel {
+  border-radius: 18px;
+  border: 1px solid rgba(255, 149, 0, 0.18);
+  background: rgba(255, 149, 0, 0.055);
+  padding: 1rem;
+}
+
+.carry-forward-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.carry-forward-grid > div {
+  display: grid;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.carry-forward-grid > div > strong {
+  color: var(--color-text);
+  font-size: 0.86rem;
+  font-weight: 850;
+}
+
+.carry-forward-row {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.55rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.16);
+  padding: 0.68rem 0.75rem;
+}
+
+.carry-forward-row span,
+.carry-forward-row small {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.carry-forward-row span {
+  color: var(--color-text);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.carry-forward-row small {
+  color: var(--color-text-light);
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
 .attachment-list {
   display: flex;
   flex-wrap: wrap;
@@ -1190,7 +1630,8 @@
 
   .race-weekend-grid,
   .race-session-workbench,
-  .session-state-grid {
+  .session-state-grid,
+  .carry-forward-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1225,7 +1666,9 @@
 
   .workspace-meta-grid,
   .admin-event-card-meta,
-  .form-row {
+  .form-row,
+  .session-context-strip,
+  .race-driver-summary-list button {
     grid-template-columns: 1fr;
   }
 
@@ -1246,8 +1689,20 @@
   .race-weekend-header,
   .race-weekend-tabs,
   .schedule-candidate,
-  .race-metric-grid {
+  .race-metric-grid,
+  .schedule-stepper,
+  .event-card-ops-grid {
     grid-template-columns: 1fr;
+  }
+
+  .carry-forward-row {
+    grid-template-columns: 1fr;
+  }
+
+  .event-card-next,
+  .race-attention-item,
+  .event-file-row {
+    flex-direction: column;
   }
 }
 

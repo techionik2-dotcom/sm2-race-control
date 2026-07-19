@@ -14,7 +14,7 @@ import {
   uploadRaceSessionAttachment,
 } from "../../../utils/eventWorkflowApi";
 
-const TABS = ["Overview", "Drivers", "Schedule", "Sessions", "Review"];
+const TABS = ["Overview", "Drivers", "Schedule", "Sessions", "Review", "Files"];
 const SESSION_STATUSES = ["PLANNED", "IN_PROGRESS", "COMPLETED"];
 
 const stringifyJson = (value) => JSON.stringify(value || {}, null, 2);
@@ -111,6 +111,82 @@ const formatChangeSummary = (value) => {
   return keys.slice(0, 4).join(", ") + (keys.length > 4 ? ` +${keys.length - 4}` : "");
 };
 
+const hasObjectValues = (value) =>
+  Boolean(value && typeof value === "object" && Object.keys(value).length);
+
+const hasSessionData = (session) =>
+  Boolean(
+    hasObjectValues(session?.setupData?.changes) ||
+      hasObjectValues(session?.tireData?.changes) ||
+      session?.lapTimes?.length ||
+      session?.comments ||
+      session?.observations ||
+      session?.adjustments ||
+      hasObjectValues(session?.additionalData),
+  );
+
+const getStatusTone = (status) => {
+  if (status === "COMPLETED") return "success";
+  if (status === "IN_PROGRESS") return "info";
+  return "warning";
+};
+
+const getVehicleLabel = (vehicle) => {
+  if (!vehicle) return "No vehicle assigned";
+  return [vehicle.vehicleCode, vehicle.make, vehicle.model].filter(Boolean).join(" - ");
+};
+
+const sortSessionsByTime = (items = []) =>
+  [...items].sort((left, right) => {
+    const leftTime = left?.scheduledAt ? new Date(left.scheduledAt).getTime() : Number.POSITIVE_INFINITY;
+    const rightTime = right?.scheduledAt ? new Date(right.scheduledAt).getTime() : Number.POSITIVE_INFINITY;
+    return (Number.isNaN(leftTime) ? Number.POSITIVE_INFINITY : leftTime) -
+      (Number.isNaN(rightTime) ? Number.POSITIVE_INFINITY : rightTime);
+  });
+
+const getNextSession = (items = []) =>
+  sortSessionsByTime(items).find((session) => session.status !== "COMPLETED") ||
+  sortSessionsByTime(items)[0] ||
+  null;
+
+const flattenRecord = (value, prefix = "") => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return [];
+
+  return Object.entries(value).flatMap(([key, item]) => {
+    const label = prefix ? `${prefix}.${key}` : key;
+    if (item && typeof item === "object" && !Array.isArray(item)) {
+      return flattenRecord(item, label);
+    }
+    return [{ label, value: item }];
+  });
+};
+
+const buildCarryForwardRows = (session, sourceKey) => {
+  const source = session?.[sourceKey] || {};
+  const startingRows = flattenRecord(source.starting);
+  const changes = source.changes || {};
+  const final = source.final || {};
+  const labels = new Set([
+    ...startingRows.map((row) => row.label),
+    ...flattenRecord(changes).map((row) => row.label),
+    ...flattenRecord(final).map((row) => row.label),
+  ]);
+
+  return Array.from(labels).slice(0, 12).map((label) => {
+    const previous = startingRows.find((row) => row.label === label)?.value;
+    const changed = flattenRecord(changes).find((row) => row.label === label)?.value;
+    const current = flattenRecord(final).find((row) => row.label === label)?.value ?? changed ?? previous;
+    const state = changed === undefined ? "Inherited" : previous === undefined ? "New" : "Changed";
+
+    return {
+      label,
+      previous,
+      current,
+      state,
+    };
+  });
+};
+
 export default function RaceWeekendOperations({ eventId, setNotice }) {
   const [activeTab, setActiveTab] = useState("Overview");
   const [weekend, setWeekend] = useState(null);
@@ -164,6 +240,68 @@ export default function RaceWeekendOperations({ eventId, setNotice }) {
 
   const participants = useMemo(() => weekend?.participants || [], [weekend?.participants]);
   const sessions = useMemo(() => weekend?.sessions || [], [weekend?.sessions]);
+  const nextSessions = useMemo(
+    () => sortSessionsByTime(sessions).filter((session) => session.status !== "COMPLETED").slice(0, 6),
+    [sessions],
+  );
+  const attentionItems = useMemo(() => {
+    const items = [];
+    const driversMissingVehicles = participants.filter((participant) => !participant.vehicle).length;
+    const driversMissingBaseline = participants.filter((participant) => !hasObjectValues(participant.baselineSetup)).length;
+    const sessionsMissingData = sessions.filter(
+      (session) => session.status !== "COMPLETED" && !hasSessionData(session),
+    ).length;
+
+    if (!participants.length) {
+      items.push({
+        title: "Add event drivers",
+        detail: "Select the drivers participating in this race weekend.",
+        action: () => setActiveTab("Drivers"),
+      });
+    }
+    if (driversMissingVehicles) {
+      items.push({
+        title: `${driversMissingVehicles} driver${driversMissingVehicles === 1 ? "" : "s"} need vehicle review`,
+        detail: "Assign vehicles before session data entry starts.",
+        action: () => setActiveTab("Drivers"),
+      });
+    }
+    if (driversMissingBaseline) {
+      items.push({
+        title: `${driversMissingBaseline} baseline setup${driversMissingBaseline === 1 ? "" : "s"} need confirmation`,
+        detail: "Baseline setup drives carry-forward visibility.",
+        action: () => setActiveTab("Drivers"),
+      });
+    }
+    if (!sessions.length) {
+      items.push({
+        title: "Create sessions from the schedule",
+        detail: "Upload or paste the weekend schedule, then confirm detected sessions.",
+        action: () => setActiveTab("Schedule"),
+      });
+    } else if (sessionsMissingData) {
+      items.push({
+        title: `${sessionsMissingData} session${sessionsMissingData === 1 ? "" : "s"} missing data`,
+        detail: "Open the next driver session and enter what changed.",
+        action: () => setActiveTab("Sessions"),
+      });
+    }
+
+    return items.slice(0, 5);
+  }, [participants, sessions]);
+  const allAttachments = useMemo(
+    () =>
+      participants.flatMap((participant) =>
+        (participant.sessions || []).flatMap((session) =>
+          (session.attachments || []).map((attachment) => ({
+            ...attachment,
+            driverName: participant.driver?.driverName || "Driver",
+            sessionTitle: session.title,
+          })),
+        ),
+      ),
+    [participants],
+  );
   const selectedParticipant = useMemo(
     () => participants.find((participant) => participant.id === selectedParticipantId) || participants[0] || null,
     [participants, selectedParticipantId],
@@ -179,6 +317,14 @@ export default function RaceWeekendOperations({ eventId, setNotice }) {
       participantSessions[0] ||
       null,
     [participantSessions, selectedSessionId, sessions],
+  );
+  const selectedSetupCarryRows = useMemo(
+    () => buildCarryForwardRows(selectedSession, "setupData"),
+    [selectedSession],
+  );
+  const selectedTireCarryRows = useMemo(
+    () => buildCarryForwardRows(selectedSession, "tireData"),
+    [selectedSession],
   );
 
   useEffect(() => {
@@ -409,17 +555,40 @@ export default function RaceWeekendOperations({ eventId, setNotice }) {
 
       {activeTab === "Overview" ? (
         <div className="race-weekend-grid">
-          <div className="workspace-panel">
+          <div className="workspace-panel race-overview-primary">
             <div className="workspace-panel-header">
               <div>
                 <div className="admin-page-eyebrow">Weekend Summary</div>
-                <h3 className="workspace-panel-title">Drivers and sessions</h3>
+                <h3 className="workspace-panel-title">Race weekend control center</h3>
+                <p className="workspace-panel-subtitle">
+                  Start from the event, then move into the driver and session
+                  that needs work next.
+                </p>
               </div>
             </div>
             <div className="race-metric-grid">
               <div className="race-metric"><strong>{participants.length}</strong><span>Participating drivers</span></div>
               <div className="race-metric"><strong>{sessions.length}</strong><span>Driver sessions</span></div>
               <div className="race-metric"><strong>{weekend?.summary?.upcoming_session_count || 0}</strong><span>Open sessions</span></div>
+            </div>
+
+            <div className="race-attention-list">
+              <div className="race-section-label">Attention Required</div>
+              {attentionItems.map((item) => (
+                <button key={item.title} type="button" className="race-attention-item" onClick={item.action}>
+                  <span>
+                    <strong>{item.title}</strong>
+                    <small>{item.detail}</small>
+                  </span>
+                  <StatusBadge label="Review" tone="warning" />
+                </button>
+              ))}
+              {!attentionItems.length ? (
+                <div className="workspace-callout">
+                  Weekend setup looks ready. Continue entering session updates as
+                  track activity comes in.
+                </div>
+              ) : null}
             </div>
           </div>
 
@@ -431,13 +600,59 @@ export default function RaceWeekendOperations({ eventId, setNotice }) {
               </div>
             </div>
             <div className="race-session-list compact">
-              {sessions.slice(0, 6).map((session) => (
+              {nextSessions.map((session) => (
                 <button key={session.id} type="button" onClick={() => { setSelectedParticipantId(session.participantId); setSelectedSessionId(session.id); setActiveTab("Sessions"); }}>
                   <span>{session.title}</span>
                   <small>{formatDateTime(session.scheduledAt)}</small>
+                  <StatusBadge label={session.status} tone={getStatusTone(session.status)} />
                 </button>
               ))}
-              {!sessions.length ? <div className="workspace-callout">No sessions have been generated yet.</div> : null}
+              {!nextSessions.length ? <div className="workspace-callout">No upcoming sessions have been generated yet.</div> : null}
+            </div>
+          </div>
+
+          <div className="workspace-panel race-overview-wide">
+            <div className="workspace-panel-header">
+              <div>
+                <div className="admin-page-eyebrow">Driver Readiness</div>
+                <h3 className="workspace-panel-title">Participants inside this event</h3>
+              </div>
+            </div>
+            <div className="race-driver-summary-list">
+              {participants.slice(0, 6).map((participant) => {
+                const nextSession = getNextSession(participant.sessions);
+                const completedSessions = participant.sessions.filter((session) => session.status === "COMPLETED").length;
+                return (
+                  <button
+                    key={participant.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedParticipantId(participant.id);
+                      setSelectedSessionId(nextSession?.id || "");
+                      setActiveTab("Sessions");
+                    }}
+                  >
+                    <span>
+                      <strong>{participant.driver?.driverName || "Driver"}</strong>
+                      <small>{getVehicleLabel(participant.vehicle)}</small>
+                    </span>
+                    <span>
+                      <strong>{completedSessions}/{participant.sessions.length}</strong>
+                      <small>Complete</small>
+                    </span>
+                    <span>
+                      <strong>{nextSession?.title || "No session"}</strong>
+                      <small>{nextSession ? formatDateTime(nextSession.scheduledAt) : "Confirm schedule"}</small>
+                    </span>
+                  </button>
+                );
+              })}
+              {!participants.length ? (
+                <div className="workspace-callout">
+                  Add drivers to make this event workspace useful for the race
+                  team.
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
@@ -453,21 +668,39 @@ export default function RaceWeekendOperations({ eventId, setNotice }) {
               </div>
             </div>
             <div className="race-driver-grid">
-              {participants.map((participant) => (
-                <button
-                  key={participant.id}
-                  type="button"
-                  className="race-driver-card"
-                  onClick={() => {
-                    setSelectedParticipantId(participant.id);
-                    setActiveTab("Sessions");
-                  }}
-                >
-                  <strong>{participant.driver?.driverName || "Driver"}</strong>
-                  <span>{participant.vehicle ? `${participant.vehicle.make} ${participant.vehicle.model}` : "No vehicle assigned"}</span>
-                  <small>{participant.sessions.length} sessions</small>
-                </button>
-              ))}
+              {participants.map((participant) => {
+                const nextSession = getNextSession(participant.sessions);
+                const completedSessions = participant.sessions.filter((session) => session.status === "COMPLETED").length;
+                const readinessTone = participant.vehicle && hasObjectValues(participant.baselineSetup)
+                  ? "success"
+                  : "warning";
+                const readinessLabel = participant.vehicle && hasObjectValues(participant.baselineSetup)
+                  ? "Ready"
+                  : "Needs Setup";
+
+                return (
+                  <button
+                    key={participant.id}
+                    type="button"
+                    className="race-driver-card"
+                    onClick={() => {
+                      setSelectedParticipantId(participant.id);
+                      setSelectedSessionId(nextSession?.id || "");
+                      setActiveTab("Sessions");
+                    }}
+                  >
+                    <div className="race-driver-card-top">
+                      <strong>{participant.driver?.driverName || "Driver"}</strong>
+                      <StatusBadge label={readinessLabel} tone={readinessTone} />
+                    </div>
+                    <span>{getVehicleLabel(participant.vehicle)}</span>
+                    <div className="race-driver-card-meta">
+                      <small>{completedSessions}/{participant.sessions.length} sessions complete</small>
+                      <small>Next: {nextSession?.title || "Confirm schedule"}</small>
+                    </div>
+                  </button>
+                );
+              })}
               {!participants.length ? <div className="workspace-callout">Add drivers to start building this race weekend.</div> : null}
             </div>
           </section>
@@ -519,7 +752,24 @@ export default function RaceWeekendOperations({ eventId, setNotice }) {
               <div>
                 <div className="admin-page-eyebrow">Schedule Upload</div>
                 <h3 className="workspace-panel-title">Detected sessions</h3>
+                <p className="workspace-panel-subtitle">
+                  Upload or paste the weekend schedule, review the detected
+                  sessions, then confirm before anything is created.
+                </p>
               </div>
+            </div>
+            <div className="schedule-stepper" aria-label="Schedule creation progress">
+              {[
+                ["Upload", Boolean(scheduleText.trim())],
+                ["Analyze", Boolean(detectedSessions.length)],
+                ["Review", Boolean(detectedSessions.length)],
+                ["Confirm", Boolean(sessions.length)],
+              ].map(([label, complete], index) => (
+                <div key={label} className={complete ? "complete" : index === 0 || scheduleText.trim() ? "active" : ""}>
+                  <span>{index + 1}</span>
+                  <strong>{label}</strong>
+                </div>
+              ))}
             </div>
             <div className="form-group">
               <label className="form-label" htmlFor="schedule-file">Schedule file</label>
@@ -552,7 +802,7 @@ export default function RaceWeekendOperations({ eventId, setNotice }) {
                   <button type="button" className="btn btn-secondary" onClick={() => removeDetectedSession(index)}>Remove</button>
                 </div>
               ))}
-              {!detectedSessions.length ? <div className="workspace-callout">Analyze a schedule to review sessions here.</div> : null}
+              {!detectedSessions.length ? <div className="workspace-callout">Analyze a schedule to review sessions here before confirming.</div> : null}
             </div>
             <div className="detail-action-bar">
               <button type="button" className="btn btn-primary" disabled={saving || !detectedSessions.length || !participants.length} onClick={handleConfirmSchedule}>Confirm Schedule</button>
@@ -588,9 +838,31 @@ export default function RaceWeekendOperations({ eventId, setNotice }) {
                   <div>
                     <div className="admin-page-eyebrow">Session Data</div>
                     <h3 className="workspace-panel-title">{selectedParticipant?.driver?.driverName || "Driver"} - {selectedSession.title}</h3>
-                    <p className="workspace-panel-subtitle">{selectedParticipant?.vehicle ? `${selectedParticipant.vehicle.make} ${selectedParticipant.vehicle.model}` : "Vehicle not assigned"} · {formatDateTime(selectedSession.scheduledAt)}</p>
+                    <p className="workspace-panel-subtitle">
+                      {getVehicleLabel(selectedParticipant?.vehicle)} - {formatDateTime(selectedSession.scheduledAt)}
+                    </p>
                   </div>
-                  <StatusBadge label={selectedSession.status} tone={selectedSession.status === "COMPLETED" ? "success" : "warning"} />
+                  <div className="helper-pill-row">
+                    <StatusBadge label={selectedSession.status} tone={getStatusTone(selectedSession.status)} />
+                    <StatusBadge
+                      label={hasSessionData(selectedSession) ? "Data Entered" : "Missing Data"}
+                      tone={hasSessionData(selectedSession) ? "success" : "warning"}
+                    />
+                  </div>
+                </div>
+                <div className="session-context-strip">
+                  <div>
+                    <span>Event Driver</span>
+                    <strong>{selectedParticipant?.driver?.driverName || "Driver"}</strong>
+                  </div>
+                  <div>
+                    <span>Vehicle</span>
+                    <strong>{getVehicleLabel(selectedParticipant?.vehicle)}</strong>
+                  </div>
+                  <div>
+                    <span>Session</span>
+                    <strong>{selectedSession.title}</strong>
+                  </div>
                 </div>
                 <div className="form-row">
                   <div className="form-group">
@@ -612,6 +884,40 @@ export default function RaceWeekendOperations({ eventId, setNotice }) {
                   <div className="form-group">
                     <label className="form-label" htmlFor="tire-changes">Tire pressures and temperatures</label>
                     <textarea id="tire-changes" className="input event-textarea code-textarea" value={sessionDraft.tireChangesText} onChange={(event) => setSessionDraft((current) => ({ ...current, tireChangesText: event.target.value }))} />
+                  </div>
+                </div>
+                <div className="carry-forward-panel">
+                  <div className="workspace-panel-header">
+                    <div>
+                      <div className="admin-page-eyebrow">Carry Forward</div>
+                      <h4 className="workspace-panel-title">Inherited vs changed data</h4>
+                      <p className="workspace-panel-subtitle">
+                        Values inherited from the previous session stay visible
+                        separately from values changed in this session.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="carry-forward-grid">
+                    <div>
+                      <strong>Setup</strong>
+                      {(selectedSetupCarryRows.length ? selectedSetupCarryRows : [{ label: "Baseline setup", previous: "-", current: "No setup values yet", state: "Inherited" }]).map((row) => (
+                        <div key={`setup-${row.label}`} className="carry-forward-row">
+                          <span>{row.label}</span>
+                          <small>{row.previous ?? "-"} to {row.current ?? "-"}</small>
+                          <StatusBadge label={row.state} tone={row.state === "Changed" || row.state === "New" ? "accent" : "neutral"} />
+                        </div>
+                      ))}
+                    </div>
+                    <div>
+                      <strong>Tires</strong>
+                      {(selectedTireCarryRows.length ? selectedTireCarryRows : [{ label: "Tire data", previous: "-", current: "No tire values yet", state: "Inherited" }]).map((row) => (
+                        <div key={`tire-${row.label}`} className="carry-forward-row">
+                          <span>{row.label}</span>
+                          <small>{row.previous ?? "-"} to {row.current ?? "-"}</small>
+                          <StatusBadge label={row.state} tone={row.state === "Changed" || row.state === "New" ? "accent" : "neutral"} />
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
                 <div className="form-group">
@@ -691,6 +997,39 @@ export default function RaceWeekendOperations({ eventId, setNotice }) {
               </div>
             ))}
             {!participants.length ? <div className="workspace-callout">Add drivers and sessions to review the weekend.</div> : null}
+          </div>
+        </div>
+      ) : null}
+
+      {activeTab === "Files" ? (
+        <div className="workspace-panel">
+          <div className="workspace-panel-header">
+            <div>
+              <div className="admin-page-eyebrow">Files</div>
+              <h3 className="workspace-panel-title">Session photos and attachments</h3>
+              <p className="workspace-panel-subtitle">
+                Files stay tied to the driver session where they were uploaded,
+                but this view makes the whole weekend easy to inspect.
+              </p>
+            </div>
+            <StatusBadge label={`${allAttachments.length} Files`} tone={allAttachments.length ? "accent" : "neutral"} />
+          </div>
+          <div className="event-file-list">
+            {allAttachments.map((attachment) => (
+              <div key={attachment.id} className="event-file-row">
+                <span>
+                  <strong>{attachment.filename}</strong>
+                  <small>{attachment.driverName} - {attachment.sessionTitle}</small>
+                </span>
+                <StatusBadge label={attachment.contentType || "File"} tone="neutral" />
+              </div>
+            ))}
+            {!allAttachments.length ? (
+              <div className="workspace-callout">
+                No files have been uploaded yet. Open a driver session and add
+                photos from the session form.
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}

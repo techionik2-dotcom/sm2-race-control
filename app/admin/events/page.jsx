@@ -12,6 +12,13 @@ import {
   getEvents,
   updateEvent,
 } from "../../utils/eventApi";
+import { getDrivers, getVehicles } from "../../utils/fleetApi";
+import {
+  addEventParticipant,
+  analyzeEventSchedule,
+  confirmEventSchedule,
+  getEventWeekendWorkspace,
+} from "../../utils/eventWorkflowApi";
 import { getRunGroup, setRunGroup, updateRunGroup } from "../../utils/runGroupApi";
 import EventFormDrawer from "./_components/EventFormDrawer";
 import EventArchiveDialog from "./_components/EventArchiveDialog";
@@ -53,10 +60,43 @@ const NOTICE_COPY = {
   error: "error",
 };
 
+const getSessionTimestamp = (session) => {
+  const value = session?.scheduledAt || session?.scheduled_at;
+  if (!value) return Number.POSITIVE_INFINITY;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? Number.POSITIVE_INFINITY : date.getTime();
+};
+
+const getNextWeekendSession = (weekend) => {
+  const sessions = Array.isArray(weekend?.sessions) ? weekend.sessions : [];
+  const participants = Array.isArray(weekend?.participants) ? weekend.participants : [];
+  const participantById = new Map(participants.map((participant) => [participant.id, participant]));
+  const openSessions = sessions
+    .filter((session) => session.status !== "COMPLETED")
+    .sort((left, right) => getSessionTimestamp(left) - getSessionTimestamp(right));
+  const nextSession = openSessions[0] ||
+    [...sessions].sort((left, right) => getSessionTimestamp(left) - getSessionTimestamp(right))[0];
+
+  if (!nextSession) return null;
+
+  const participant = participantById.get(nextSession.participantId);
+  const vehicle = participant?.vehicle;
+
+  return {
+    title: nextSession.title || "Session",
+    scheduledAt: nextSession.scheduledAt || null,
+    status: nextSession.status || "PLANNED",
+    driverName: participant?.driver?.driverName || participant?.driver?.fullName || "Driver",
+    vehicleLabel: vehicle ? `${vehicle.make || ""} ${vehicle.model || ""}`.trim() : "",
+  };
+};
+
 export default function EventsManagementPage() {
   const router = useRouter();
 
   const [events, setEvents] = useState([]);
+  const [drivers, setDrivers] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pageError, setPageError] = useState("");
   const [notice, setNotice] = useState(null);
@@ -88,22 +128,40 @@ export default function EventsManagementPage() {
         baseEvents.map(async (event) => {
           const eventId = getEventId(event);
           if (!eventId) {
-            return { ...event, runGroup: null };
+            return { ...event, runGroup: null, weekendSummary: null, nextSession: null };
           }
 
-          try {
-            const runGroup = await getRunGroup(eventId);
-            return { ...event, runGroup };
-          } catch (error) {
-            if (!isNotFoundError(error)) {
-              console.warn("Run group lookup failed for admin event card:", {
-                eventId,
-                error,
-              });
-            }
+          const [runGroupResult, weekendResult] = await Promise.allSettled([
+            getRunGroup(eventId),
+            getEventWeekendWorkspace(eventId),
+          ]);
 
-            return { ...event, runGroup: null };
+          let runGroup = null;
+          if (runGroupResult.status === "fulfilled") {
+            runGroup = runGroupResult.value;
+          } else if (!isNotFoundError(runGroupResult.reason)) {
+            console.warn("Run group lookup failed for admin event card:", {
+              eventId,
+              error: runGroupResult.reason,
+            });
           }
+
+          let weekend = null;
+          if (weekendResult.status === "fulfilled") {
+            weekend = weekendResult.value;
+          } else {
+            console.warn("Weekend summary lookup failed for admin event card:", {
+              eventId,
+              error: weekendResult.reason,
+            });
+          }
+
+          return {
+            ...event,
+            runGroup,
+            weekendSummary: weekend?.summary || null,
+            nextSession: getNextWeekendSession(weekend),
+          };
         }),
       );
 
@@ -119,6 +177,35 @@ export default function EventsManagementPage() {
   useEffect(() => {
     refreshEvents();
   }, [refreshEvents]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadFleetOptions = async () => {
+      try {
+        const [driverData, vehicleData] = await Promise.all([
+          getDrivers(),
+          getVehicles(),
+        ]);
+
+        if (!mounted) return;
+        setDrivers(driverData.drivers || []);
+        setVehicles(vehicleData.vehicles || []);
+      } catch (error) {
+        console.warn("Fleet options failed to load for event setup:", error);
+        if (mounted) {
+          setDrivers([]);
+          setVehicles([]);
+        }
+      }
+    };
+
+    loadFleetOptions();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!notice) return undefined;
@@ -226,6 +313,69 @@ export default function EventsManagementPage() {
     }
   }, []);
 
+  const buildParticipantBaseline = useCallback((driver) => {
+    const vehicle = vehicles.find((item) => item.driverId === driver?.driverCode) || null;
+
+    return {
+      driver: {
+        id: driver?.id || null,
+        code: driver?.driverCode || "",
+        name: driver?.driverName || driver?.fullName || "",
+        team: driver?.teamName || "",
+      },
+      vehicle: vehicle
+        ? {
+            id: vehicle.id,
+            code: vehicle.vehicleCode,
+            make: vehicle.make,
+            model: vehicle.model,
+            year: vehicle.year,
+            class: vehicle.vehicleClass,
+            registrationNumber: vehicle.registrationNumber,
+          }
+        : {},
+      alignment: {},
+      setup: {},
+      tire_pressures: {},
+      tire_temperatures: {},
+    };
+  }, [vehicles]);
+
+  const applyCreateWeekendSetup = useCallback(async (eventId, values) => {
+    const selectedDriverIds = Array.isArray(values.participantDriverIds)
+      ? values.participantDriverIds
+      : [];
+    let addedDrivers = 0;
+    let createdSessions = 0;
+    let skippedSessions = 0;
+
+    for (const driverId of selectedDriverIds) {
+      const driver = drivers.find((item) => item.id === driverId);
+      if (!driver) continue;
+
+      const vehicle = vehicles.find((item) => item.driverId === driver.driverCode) || null;
+      await addEventParticipant(eventId, {
+        driverId,
+        vehicleId: vehicle?.id || null,
+        baselineSetup: buildParticipantBaseline(driver),
+        notes: "",
+      });
+      addedDrivers += 1;
+    }
+
+    const scheduleText = String(values.scheduleText || "").trim();
+    if (scheduleText && addedDrivers > 0) {
+      const analyzed = await analyzeEventSchedule(eventId, scheduleText);
+      if (analyzed.detectedSessions?.length) {
+        const confirmed = await confirmEventSchedule(eventId, analyzed.detectedSessions);
+        createdSessions = confirmed.createdCount || 0;
+        skippedSessions = confirmed.skippedCount || 0;
+      }
+    }
+
+    return { addedDrivers, createdSessions, skippedSessions };
+  }, [buildParticipantBaseline, drivers, vehicles]);
+
   const handleSaveEvent = async (event) => {
     event.preventDefault();
     setDrawerError("");
@@ -282,6 +432,11 @@ export default function EventsManagementPage() {
           setStoredEventNote(createdEventId, drawerValues.notes);
         }
 
+        let setupSummary = { addedDrivers: 0, createdSessions: 0, skippedSessions: 0 };
+        if (createdEventId) {
+          setupSummary = await applyCreateWeekendSetup(createdEventId, drawerValues);
+        }
+
         let archiveStepMessage = "";
         if (drawerValues.status === "archived" && createdEventId) {
           try {
@@ -297,12 +452,24 @@ export default function EventsManagementPage() {
         await refreshEvents();
         setDrawerOpen(false);
         setDrawerEvent(null);
+
+        const hasWeekendSetup =
+          setupSummary.addedDrivers > 0 ||
+          setupSummary.createdSessions > 0 ||
+          setupSummary.skippedSessions > 0;
+
         setNotice({
           type: archiveStepMessage ? NOTICE_COPY.warning : NOTICE_COPY.success,
           message: archiveStepMessage
             ? `Event created, but ${archiveStepMessage}.`
-            : "Event created successfully.",
+            : hasWeekendSetup
+              ? `Event created with ${setupSummary.addedDrivers} driver${setupSummary.addedDrivers === 1 ? "" : "s"} and ${setupSummary.createdSessions} session${setupSummary.createdSessions === 1 ? "" : "s"}.`
+              : "Event created successfully. Open the event to add drivers and schedule sessions.",
         });
+
+        if (createdEventId && hasWeekendSetup) {
+          router.push(`/admin/events/${createdEventId}`);
+        }
       } else {
         const eventId = getEventId(drawerEvent);
         if (!eventId) {
@@ -400,6 +567,12 @@ export default function EventsManagementPage() {
       event.runGroup?.normalized || event.runGroup?.rawText || "Not Configured";
     const timestampLabel = event.updatedAt ? "Updated" : "Created";
     const timestampValue = formatDateTime(event.updatedAt || event.createdAt);
+    const weekendSummary = event.weekendSummary || {};
+    const participantCount = weekendSummary.participant_count || 0;
+    const sessionCount = weekendSummary.session_count || 0;
+    const completedCount = weekendSummary.completed_session_count || 0;
+    const pendingCount = Math.max(sessionCount - completedCount, 0);
+    const nextSession = event.nextSession;
 
     return (
       <article
@@ -452,6 +625,43 @@ export default function EventsManagementPage() {
             <div className="admin-event-card-meta-label">{timestampLabel}</div>
             <div className="admin-event-card-meta-value" title={timestampValue}>{timestampValue}</div>
           </div>
+        </div>
+
+        <div className="event-card-ops-grid" aria-label="Race weekend readiness">
+          <div>
+            <strong>{participantCount}</strong>
+            <span>Drivers</span>
+          </div>
+          <div>
+            <strong>{sessionCount}</strong>
+            <span>Sessions</span>
+          </div>
+          <div>
+            <strong>{completedCount}</strong>
+            <span>Complete</span>
+          </div>
+          <div>
+            <strong>{pendingCount}</strong>
+            <span>Pending</span>
+          </div>
+        </div>
+
+        <div className={`event-card-next ${nextSession ? "" : "empty"}`}>
+          <div>
+            <span className="event-card-next-label">Next Session</span>
+            <strong>{nextSession?.title || "No sessions created"}</strong>
+            <small>
+              {nextSession
+                ? `${nextSession.driverName} ${nextSession.vehicleLabel ? `- ${nextSession.vehicleLabel}` : ""}`
+                : "Open the event and confirm the schedule to generate sessions."}
+            </small>
+          </div>
+          {nextSession ? (
+            <StatusBadge
+              label={nextSession.status}
+              tone={nextSession.status === "COMPLETED" ? "success" : "warning"}
+            />
+          ) : null}
         </div>
 
         <div className="admin-event-card-footer">
@@ -752,6 +962,18 @@ export default function EventsManagementPage() {
           isSaving={savingEvent}
           error={drawerError}
           notesHint="Saved to the backend event notes field."
+          drivers={drivers}
+          vehicles={vehicles}
+          onOpenWeekendSetup={
+            drawerMode === "edit" && drawerEvent
+              ? () => {
+                  const eventId = getEventId(drawerEvent);
+                  if (eventId) {
+                    router.push(`/admin/events/${eventId}`);
+                  }
+                }
+              : null
+          }
         />
 
         <EventArchiveDialog

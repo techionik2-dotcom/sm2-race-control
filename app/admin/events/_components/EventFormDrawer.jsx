@@ -16,6 +16,9 @@ export default function EventFormDrawer({
   isSaving = false,
   error = "",
   notesHint = "Optional operational notes for owner reference.",
+  drivers = [],
+  vehicles = [],
+  onOpenWeekendSetup = null,
 }) {
   if (!open) return null;
 
@@ -28,6 +31,24 @@ export default function EventFormDrawer({
 
   const updateField = (field) => (event) => {
     onChange(field, event.target.value);
+  };
+
+  const selectedDriverIds = Array.isArray(values.participantDriverIds)
+    ? values.participantDriverIds
+    : [];
+
+  const toggleDriver = (driverId) => {
+    const nextDriverIds = selectedDriverIds.includes(driverId)
+      ? selectedDriverIds.filter((id) => id !== driverId)
+      : [...selectedDriverIds, driverId];
+
+    onChange("participantDriverIds", nextDriverIds);
+  };
+
+  const getDriverVehicleLabel = (driver) => {
+    const vehicle = vehicles.find((item) => item.driverId === driver.driverCode);
+    if (!vehicle) return "Vehicle can be assigned later";
+    return `${vehicle.vehicleCode || "Car"} - ${vehicle.make || ""} ${vehicle.model || ""}`.trim();
   };
 
   return (
@@ -191,6 +212,95 @@ export default function EventFormDrawer({
               />
               {notesHint}
             </p>
+          </div>
+
+          <div className="drawer-span-2 event-setup-panel">
+            <div className="event-setup-header">
+              <div>
+                <div className="event-setup-step">Step 2</div>
+                <h3>Drivers for this event</h3>
+              </div>
+              <span>{selectedDriverIds.length} selected</span>
+            </div>
+
+            {mode === "create" ? (
+              <>
+                <p className="event-setup-copy">
+                  Select the drivers now so the event opens with each driver
+                  already organized under the race weekend.
+                </p>
+                <div className="event-driver-picker">
+                  {drivers.map((driver) => (
+                    <label key={driver.id} className="event-driver-option">
+                      <input
+                        type="checkbox"
+                        checked={selectedDriverIds.includes(driver.id)}
+                        onChange={() => toggleDriver(driver.id)}
+                      />
+                      <span>
+                        <strong>{driver.driverName || driver.fullName || "Driver"}</strong>
+                        <small>{getDriverVehicleLabel(driver)}</small>
+                      </span>
+                    </label>
+                  ))}
+                  {!drivers.length ? (
+                    <div className="workspace-callout">
+                      No drivers are available yet. Add drivers from the Drivers
+                      page, then return here to build the event roster.
+                    </div>
+                  ) : null}
+                </div>
+              </>
+            ) : (
+              <div className="event-setup-inline-action">
+                <p className="event-setup-copy">
+                  Driver selection and session setup live in the event-first
+                  workspace so existing event data stays in one place.
+                </p>
+                {onOpenWeekendSetup ? (
+                  <button
+                    type="button"
+                    className="fleet-btn fleet-btn-secondary"
+                    onClick={onOpenWeekendSetup}
+                    disabled={isSaving}
+                  >
+                    Open Drivers & Schedule
+                  </button>
+                ) : null}
+              </div>
+            )}
+          </div>
+
+          <div className="drawer-span-2 event-setup-panel">
+            <div className="event-setup-header">
+              <div>
+                <div className="event-setup-step">Step 3</div>
+                <h3>Weekend schedule</h3>
+              </div>
+            </div>
+
+            {mode === "create" ? (
+              <>
+                <p className="event-setup-copy">
+                  Paste the schedule here. After the event is created, the
+                  system will analyze it and create sessions for the selected
+                  drivers.
+                </p>
+                <textarea
+                  id="event-schedule-text"
+                  className="input event-textarea"
+                  rows={6}
+                  placeholder={"Friday 9:00 AM Practice 1\nFriday 1:30 PM Qualifying\nSaturday 10:00 AM Race 1"}
+                  value={values.scheduleText || ""}
+                  onChange={updateField("scheduleText")}
+                />
+              </>
+            ) : (
+              <p className="event-setup-copy">
+                Upload or paste the schedule from the event workspace after
+                saving any changes on this form.
+              </p>
+            )}
           </div>
         </div>
 

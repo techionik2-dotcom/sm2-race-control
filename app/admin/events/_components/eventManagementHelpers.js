@@ -80,6 +80,8 @@ export const createBlankEventFormValues = () => ({
   endDate: "",
   status: "active",
   notes: "",
+  participantDriverIds: [],
+  scheduleText: "",
 });
 
 export const getEventRunGroupText = (event) => {
@@ -110,6 +112,8 @@ export const toEventFormValues = (event = null) => ({
     event?.description ||
     getStoredEventNote(getEventId(event)) ||
     "",
+  participantDriverIds: [],
+  scheduleText: "",
 });
 
 export const normalizeAdminEvent = (event) => {

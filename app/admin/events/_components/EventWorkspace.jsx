@@ -42,6 +42,7 @@ export default function EventWorkspace() {
   const eventId = params?.eventId;
   const isRunGroupRoute = pathname?.endsWith("/run-group");
   const runGroupRef = useRef(null);
+  const raceWeekendRef = useRef(null);
 
   const [event, setEvent] = useState(null);
   const [existingRunGroup, setExistingRunGroup] = useState(null);
@@ -156,6 +157,15 @@ export default function EventWorkspace() {
     if (savingEvent) return;
     setDrawerOpen(false);
     setDrawerError("");
+  };
+
+  const openWeekendSetupFromDrawer = () => {
+    if (savingEvent) return;
+    setDrawerOpen(false);
+    setDrawerError("");
+    setTimeout(() => {
+      raceWeekendRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
   };
 
   const handleDrawerChange = (field, value) => {
@@ -677,10 +687,12 @@ export default function EventWorkspace() {
                 </section>
               </div>
             </div>
-            <RaceWeekendOperations
-              eventId={getEventId(event)}
-              setNotice={setNotice}
-            />
+            <div ref={raceWeekendRef}>
+              <RaceWeekendOperations
+                eventId={getEventId(event)}
+                setNotice={setNotice}
+              />
+            </div>
             </>
           )}
         </div>
@@ -697,6 +709,7 @@ export default function EventWorkspace() {
           isSaving={savingEvent}
           error={drawerError}
           notesHint="Saved to the backend event notes field."
+          onOpenWeekendSetup={openWeekendSetupFromDrawer}
         />
 
         <EventArchiveDialog
