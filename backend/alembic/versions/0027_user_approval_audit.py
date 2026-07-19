@@ -1,6 +1,6 @@
-"""add user rejection status and approval audit fields
+"""add user approval and rejection audit fields
 
-Revision ID: 0027_user_approval_rejection_audit
+Revision ID: 0027_user_approval_audit
 Revises: 0026_event_first_workflow
 Create Date: 2026-07-19 00:00:00.000000
 """
@@ -13,7 +13,7 @@ from sqlalchemy.dialects import postgresql
 
 
 # revision identifiers, used by Alembic.
-revision = "0027_user_approval_rejection_audit"
+revision = "0027_user_approval_audit"
 down_revision = "0026_event_first_workflow"
 branch_labels = None
 depends_on = None
