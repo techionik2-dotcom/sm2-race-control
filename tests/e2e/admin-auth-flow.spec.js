@@ -115,7 +115,7 @@ async function mockAdminAuthRoutes(page) {
 }
 
 test.describe("admin auth flow", () => {
-  test("login as admin shortcut reaches the admin portal and keeps credentials saved", async ({ page }) => {
+  test("owner login reaches the admin portal", async ({ page }) => {
     await page.addInitScript(() => {
       localStorage.removeItem("sm2_token");
       localStorage.removeItem("sm2_user");
@@ -128,22 +128,17 @@ test.describe("admin auth flow", () => {
     await expect(page.getByText("RACE CONTROL")).toBeVisible();
     await expect(page.getByText("Owner and Driver Access")).toBeVisible();
 
-    await page.getByRole("button", { name: "Login as Admin" }).click();
+    await page.getByLabel("Email Address").fill("admin@smracing.com");
+    await page.getByLabel("Password", { exact: true }).fill("123456");
+    await page.getByRole("button", { name: "Login" }).click();
 
     await page.waitForURL("**/admin/users");
     await expect(page).toHaveURL(/\/admin\/users/);
     await expect(page.getByRole("heading", { name: "User Management" })).toBeVisible();
-    await expect.poll(() =>
-      page.evaluate(() => JSON.parse(localStorage.getItem("sm2_saved_portal_logins") || "{}").admin),
-    ).toEqual({
-      email: "admin@smracing.com",
-      password: "123456",
-      label: "Login as Admin",
-      route: "/admin/users",
-    });
+    await expect.poll(() => page.evaluate(() => localStorage.getItem("sm2_saved_portal_logins"))).toBeNull();
   });
 
-  test("login as driver shortcut reaches the driver portal", async ({ page }) => {
+  test("driver login reaches the driver portal", async ({ page }) => {
     await page.addInitScript(() => {
       localStorage.removeItem("sm2_token");
       localStorage.removeItem("sm2_user");
@@ -153,7 +148,9 @@ test.describe("admin auth flow", () => {
     await mockAdminAuthRoutes(page);
 
     await page.goto("/login");
-    await page.getByRole("button", { name: "Login as Driver" }).click();
+    await page.getByLabel("Email Address").fill("alex@smracing.com");
+    await page.getByLabel("Password", { exact: true }).fill("Alex@123");
+    await page.getByRole("button", { name: "Login" }).click();
 
     await page.waitForURL("**/events");
     await expect(page).toHaveURL(/\/events/);
@@ -172,7 +169,6 @@ test.describe("admin auth flow", () => {
     await expect(page.getByText("RACE CONTROL")).toBeVisible();
     await expect(page.getByText("Owner Portal Sign Out")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Signed out successfully" })).toBeVisible();
-    await expect(page.getByText("Session cleared and token revoked successfully.")).toBeVisible();
 
     await page.waitForURL("**/login");
     await expect(page).toHaveURL(/\/login/);

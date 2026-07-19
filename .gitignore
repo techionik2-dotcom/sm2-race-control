@@ -6,6 +6,7 @@ node_modules/
 out/
 dist/
 coverage/
+test-results/
 .vercel/
 
 # logs

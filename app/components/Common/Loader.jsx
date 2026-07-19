@@ -15,23 +15,24 @@ export default function Loader({
         flexDirection: "column",
         gap: 1.5,
         py: fullHeight ? 6 : 3,
-        color: "var(--color-text)",
+        color: "var(--text-primary)",
       }}
     >
       <CircularProgress
         size={42}
         thickness={4}
         sx={{
-          color: "#F05323",
+          color: "var(--brand-primary)",
         }}
       />
       <Typography
         variant="body1"
         sx={{
           fontWeight: 700,
-          letterSpacing: "0.04em",
-          textTransform: "uppercase",
-          color: "var(--color-text)",
+          letterSpacing: 0,
+          color: "var(--text-primary)",
+          fontSize: "var(--font-size-body)",
+          lineHeight: "var(--line-height-tight)",
         }}
       >
         {label}
@@ -40,7 +41,9 @@ export default function Loader({
         <Typography
           variant="body2"
           sx={{
-            color: "var(--color-text-light)",
+            color: "var(--text-secondary)",
+            fontSize: "var(--font-size-body-sm)",
+            lineHeight: "var(--line-height-base)",
           }}
         >
           {sublabel}

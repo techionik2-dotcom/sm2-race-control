@@ -1,5 +1,5 @@
 export default function EmptyState({
-  icon = "🏁",
+  icon = "SM-2",
   title,
   description,
   actions = null,
@@ -10,12 +10,11 @@ export default function EmptyState({
     <div
       className={className}
       style={{
-        borderRadius: "22px",
-        border: "1px solid rgba(255, 255, 255, 0.08)",
-        background:
-          "linear-gradient(135deg, rgba(26, 26, 26, 0.96) 0%, rgba(16, 16, 16, 0.96) 100%)",
-        boxShadow: "0 24px 60px rgba(0, 0, 0, 0.26)",
-        padding: "2rem",
+        borderRadius: "var(--radius-xl)",
+        border: "1px solid var(--border-subtle)",
+        background: "var(--surface-card)",
+        boxShadow: "var(--shadow-raised)",
+        padding: "var(--space-8)",
         textAlign: "center",
         maxWidth: "760px",
         margin: "0 auto",
@@ -26,14 +25,17 @@ export default function EmptyState({
         style={{
           width: "68px",
           height: "68px",
-          borderRadius: "20px",
-          margin: "0 auto 1rem",
+          borderRadius: "var(--radius-lg)",
+          margin: "0 auto var(--space-4)",
           display: "grid",
           placeItems: "center",
           background: "rgba(240, 83, 35, 0.14)",
           border: "1px solid rgba(240, 83, 35, 0.2)",
-          fontSize: "1.9rem",
-          boxShadow: "0 10px 20px rgba(0, 0, 0, 0.22)",
+          color: "var(--color-text)",
+          fontSize: typeof icon === "string" && icon.length > 4 ? "0.82rem" : "1.2rem",
+          fontWeight: 900,
+          letterSpacing: "0.04em",
+          boxShadow: "var(--shadow-subtle)",
         }}
       >
         {icon}
@@ -42,10 +44,11 @@ export default function EmptyState({
       <h3
         style={{
           margin: 0,
-          color: "#fff",
-          fontSize: "1.2rem",
+          color: "var(--text-primary)",
+          fontSize: "var(--font-size-section-title)",
           fontWeight: 800,
-          letterSpacing: "0.02em",
+          letterSpacing: 0,
+          lineHeight: "var(--line-height-tight)",
         }}
       >
         {title}
@@ -54,11 +57,11 @@ export default function EmptyState({
       {description ? (
         <p
           style={{
-            margin: "0.65rem auto 0",
+            margin: "var(--space-3) auto 0",
             maxWidth: "52ch",
-            color: "#a9a9a9",
-            lineHeight: 1.6,
-            fontSize: "0.95rem",
+            color: "var(--text-secondary)",
+            lineHeight: "var(--line-height-relaxed)",
+            fontSize: "var(--font-size-body)",
           }}
         >
           {description}
@@ -68,9 +71,9 @@ export default function EmptyState({
       {actions ? (
         <div
           style={{
-            marginTop: "1.25rem",
+            marginTop: "var(--space-5)",
             display: "flex",
-            gap: "0.75rem",
+            gap: "var(--space-3)",
             justifyContent: "center",
             flexWrap: "wrap",
           }}
