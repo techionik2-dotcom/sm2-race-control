@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, time
 
-from sqlalchemy import Boolean, Date, DateTime, Enum, ForeignKey, Integer, Numeric, SmallInteger, String, Text, Time, func
+from sqlalchemy import Boolean, Date, DateTime, Enum, ForeignKey, Integer, Numeric, SmallInteger, String, Text, Time, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -33,7 +33,19 @@ class TireInventory(Base):
 
 class Seance(Base):
     __tablename__ = "seances"
-    __table_args__ = {"schema": SM2RACING_SCHEMA}
+    __table_args__ = (
+        UniqueConstraint(
+            "session_date",
+            "session_time",
+            "track",
+            "driver_id",
+            "vehicle_id",
+            "session_type",
+            "session_number",
+            name="uq_session_identity",
+        ),
+        {"schema": SM2RACING_SCHEMA},
+    )
 
     id_seance: Mapped[str] = mapped_column(String(120), primary_key=True)
     session_date: Mapped[date] = mapped_column(Date, nullable=False)
@@ -64,6 +76,7 @@ class Seance(Base):
         Enum(SeanceStatus, name="sm2_status", schema=SM2RACING_SCHEMA),
         nullable=False,
         default=SeanceStatus.ACTIVE,
+        server_default=SeanceStatus.ACTIVE.value,
     )
 
 
