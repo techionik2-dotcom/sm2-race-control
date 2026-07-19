@@ -11,71 +11,9 @@ const TELEMETRY_BACKGROUND =
   "https://d2xsxph8kpxj0f.cloudfront.net/310519663611619053/EBPeWtZXBpCFLD2Dqq5aDH/racing-telemetry-bg-TCNJDDSXNs3PoAhwXNBQab.webp";
 const CHECKERED_FLAG =
   "https://d2xsxph8kpxj0f.cloudfront.net/310519663611619053/EBPeWtZXBpCFLD2Dqq5aDH/checkered-flag-icon-BK4bojoYYoDd6y4gzs53PF.webp";
-const SAVED_PORTAL_LOGINS_KEY = "sm2_saved_portal_logins";
-const DEFAULT_PORTAL_LOGINS = {
-  admin: {
-    email: "admin@smracing.com",
-    password: "123456",
-    label: "Login as Admin",
-    route: "/admin/users",
-  },
-  driver: {
-    email: "alex@smracing.com",
-    password: "Alex@123",
-    label: "Login as Driver",
-    route: "/events",
-  },
-};
-const PORTAL_LOGIN_ORDER = ["admin", "driver"];
 
 const hasOwnerAccess = (role) => ["OWNER", "ADMIN"].includes(String(role || "").toUpperCase());
-const getPortalKeyForRole = (role) => (hasOwnerAccess(role) ? "admin" : "driver");
-
-const normalizePortalLogin = (portalKey, candidate = {}) => ({
-  ...DEFAULT_PORTAL_LOGINS[portalKey],
-  email:
-    typeof candidate.email === "string" && candidate.email.trim()
-      ? candidate.email.trim()
-      : DEFAULT_PORTAL_LOGINS[portalKey].email,
-  password:
-    typeof candidate.password === "string" && candidate.password
-      ? candidate.password
-      : DEFAULT_PORTAL_LOGINS[portalKey].password,
-});
-
-const mergePortalLogins = (candidate = {}) => ({
-  admin: normalizePortalLogin("admin", candidate.admin),
-  driver: normalizePortalLogin("driver", candidate.driver),
-});
-
-const readSavedPortalLogins = () => {
-  if (typeof window === "undefined") {
-    return mergePortalLogins();
-  }
-
-  try {
-    const storedValue = window.localStorage.getItem(SAVED_PORTAL_LOGINS_KEY);
-    if (!storedValue) {
-      return mergePortalLogins();
-    }
-
-    return mergePortalLogins(JSON.parse(storedValue));
-  } catch (error) {
-    console.warn("Failed to read saved portal logins:", error);
-    return mergePortalLogins();
-  }
-};
-
-const persistPortalLogins = (portalLogins) => {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.setItem(
-    SAVED_PORTAL_LOGINS_KEY,
-    JSON.stringify(mergePortalLogins(portalLogins)),
-  );
-};
+const getPostLoginRoute = (role) => (hasOwnerAccess(role) ? "/admin/users" : "/events");
 
 const isHtmlLikeError = (value) => {
   if (typeof value !== "string") {
@@ -223,7 +161,6 @@ function ArrowIcon() {
 export default function LoginContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [portalLogins, setPortalLogins] = useState(() => mergePortalLogins());
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -279,14 +216,8 @@ export default function LoginContent() {
       return;
     }
 
-    router.replace(hasOwnerAccess(user.role) ? "/admin/users" : "/events");
+    router.replace(getPostLoginRoute(user.role));
   }, [router, user]);
-
-  useEffect(() => {
-    const savedPortalLogins = readSavedPortalLogins();
-    setPortalLogins(savedPortalLogins);
-    persistPortalLogins(savedPortalLogins);
-  }, []);
 
   const emailError = useMemo(() => {
     if (!error) return "";
@@ -304,24 +235,7 @@ export default function LoginContent() {
     return "";
   }, [error]);
 
-  const savePortalLogin = useCallback((portalKey, credentials) => {
-    setPortalLogins((currentLogins) => {
-      const nextLogins = mergePortalLogins({
-        ...currentLogins,
-        [portalKey]: {
-          ...currentLogins[portalKey],
-          email: credentials.email,
-          password: credentials.password,
-        },
-      });
-
-      persistPortalLogins(nextLogins);
-      return nextLogins;
-    });
-  }, []);
-
-  const submitLogin = useCallback(async (nextEmail, nextPassword, options = {}) => {
-    const { reflectInForm = true } = options;
+  const submitLogin = useCallback(async (nextEmail, nextPassword) => {
     setError("");
     setSuccess("");
     setSuccessTitle("");
@@ -330,10 +244,8 @@ export default function LoginContent() {
     const sanitizedEmail = String(nextEmail || "").trim();
     const sanitizedPassword = String(nextPassword || "");
 
-    if (reflectInForm) {
-      setEmail(sanitizedEmail);
-      setPassword(sanitizedPassword);
-    }
+    setEmail(sanitizedEmail);
+    setPassword(sanitizedPassword);
 
     if (!sanitizedEmail || !sanitizedPassword) {
       setError("Please enter both email and password.");
@@ -348,14 +260,8 @@ export default function LoginContent() {
       const token = response.token || response.data?.token || response.accessToken;
 
       if (userData) {
-        const portalKey = getPortalKeyForRole(userData.role || userData.roleName);
-
-        savePortalLogin(portalKey, {
-          email: sanitizedEmail,
-          password: sanitizedPassword,
-        });
         login(userData, token);
-        router.replace(portalLogins[portalKey]?.route || DEFAULT_PORTAL_LOGINS[portalKey].route);
+        router.replace(getPostLoginRoute(userData.role || userData.roleName));
         return true;
       }
 
@@ -408,7 +314,7 @@ export default function LoginContent() {
     } finally {
       setIsLoading(false);
     }
-  }, [login, portalLogins, router, savePortalLogin]);
+  }, [login, router]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -419,17 +325,6 @@ export default function LoginContent() {
 
     await submitLogin(nextEmail, nextPassword);
   };
-
-  const handlePortalShortcut = useCallback(
-    async (portalKey) => {
-      const shortcutLogin = portalLogins[portalKey] || DEFAULT_PORTAL_LOGINS[portalKey];
-      setShowPassword(false);
-      await submitLogin(shortcutLogin.email, shortcutLogin.password, {
-        reflectInForm: false,
-      });
-    },
-    [portalLogins, submitLogin],
-  );
 
   return (
     <div className="login-page">
@@ -482,33 +377,6 @@ export default function LoginContent() {
                     </div>
                   </div>
                 )}
-
-                <div className="login-shortcuts">
-                  <div className="login-shortcuts__header">
-                    <p className="login-shortcuts__eyebrow">Quick Access</p>
-                    <p className="login-shortcuts__copy">
-                      Saved portal passwords let Admin and Driver sign in with one click.
-                    </p>
-                  </div>
-
-                  <div className="login-shortcuts__grid">
-                    {PORTAL_LOGIN_ORDER.map((portalKey) => {
-                      const shortcutLogin = portalLogins[portalKey];
-
-                      return (
-                        <button
-                          key={portalKey}
-                          type="button"
-                          className={`login-shortcut login-shortcut--${portalKey}`}
-                          onClick={() => handlePortalShortcut(portalKey)}
-                          disabled={isLoading}
-                        >
-                          <span className="login-shortcut__label">{shortcutLogin.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
 
                 <div className="login-field">
                   <label htmlFor="login-email" className="login-field__label">
