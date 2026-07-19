@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+from io import BytesIO
+from urllib.error import HTTPError
 
 import pytest
 
@@ -79,6 +81,38 @@ def test_transcribe_audio_bytes_requires_openai_key(monkeypatch) -> None:
 
     assert exc_info.value.code == "OPENAI_NOT_CONFIGURED"
     assert exc_info.value.retryable is False
+
+
+def test_transcribe_audio_bytes_classifies_openai_auth_error(monkeypatch) -> None:
+    monkeypatch.setattr(openai_transcription_service.settings, "openai_api_key", "invalid-openai-key")
+
+    def fake_urlopen(_req, timeout=None):
+        raise HTTPError(
+            OPENAI_TRANSCRIPTIONS_URL,
+            401,
+            "Unauthorized",
+            hdrs=None,
+            fp=BytesIO(
+                json.dumps(
+                    {
+                        "error": {
+                            "message": "Incorrect API key provided",
+                            "code": "invalid_api_key",
+                        }
+                    }
+                ).encode("utf-8")
+            ),
+        )
+
+    monkeypatch.setattr(openai_transcription_service.request, "urlopen", fake_urlopen)
+
+    with pytest.raises(OpenAITranscriptionError) as exc_info:
+        transcribe_audio_bytes(b"fake-audio", content_type="audio/webm")
+
+    assert exc_info.value.code == "OPENAI_AUTH_ERROR"
+    assert exc_info.value.retryable is False
+    assert exc_info.value.status_code == 401
+    assert "API key is invalid" in str(exc_info.value)
 
 
 def test_extract_transcription_result_normalizes_openai_response(monkeypatch) -> None:

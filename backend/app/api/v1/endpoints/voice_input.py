@@ -80,10 +80,13 @@ async def transcribe_voice_input_endpoint(
             },
             exc_info=True,
         )
-        if exc.code == "OPENAI_NOT_CONFIGURED":
+        if exc.code in {"OPENAI_NOT_CONFIGURED", "OPENAI_AUTH_ERROR"}:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Speech transcription is not configured",
+                detail=(
+                    "Speech transcription is not configured. "
+                    "Set a valid OPENAI_API_KEY with access to speech transcription."
+                ),
             ) from exc
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE if exc.retryable else status.HTTP_502_BAD_GATEWAY,

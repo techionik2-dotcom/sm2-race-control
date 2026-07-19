@@ -314,6 +314,55 @@ def test_process_voice_transcription_saves_openai_metadata(monkeypatch) -> None:
     assert attempt.request_id == "req_openai_voice"
 
 
+def test_process_voice_transcription_records_openai_auth_error(monkeypatch) -> None:
+    session = _voice_session(status=VoiceNoteStatus.UPLOADED)
+    session.audio_file_name = "driver-note.webm"
+    session.audio_content_type = "audio/webm"
+    session.audio_size_bytes = 10
+    audio_record = VoiceNoteAudio(
+        voice_session_id=session.id,
+        audio_blob=b"audio-data",
+        mime_type="audio/webm",
+        file_extension="webm",
+        size_bytes=10,
+        original_filename="driver-note.webm",
+        created_at=datetime.now(timezone.utc),
+    )
+    attempt = VoiceNoteTranscriptionAttempt(
+        id=uuid4(),
+        voice_session_id=session.id,
+        attempt_number=1,
+        provider="openai",
+        attempt_status="PENDING",
+        request_json={},
+    )
+    db = DummySession(audio_record=audio_record)
+
+    monkeypatch.setattr(voice_note_service, "_audit", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        voice_note_service,
+        "transcribe_audio_bytes",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            voice_note_service.OpenAITranscriptionError(
+                "OpenAI API key is invalid or does not have access to speech transcription",
+                code="OPENAI_AUTH_ERROR",
+                retryable=False,
+                status_code=401,
+            )
+        ),
+    )
+
+    processed = process_voice_transcription(db, voice_session=session, attempt=attempt)
+
+    assert processed is session
+    assert session.status == VoiceNoteStatus.TRANSCRIPTION_FAILED
+    assert session.validation_status == "FAILED"
+    assert session.validation_message == "OpenAI API key is invalid or does not have access to speech transcription"
+    assert session.last_error_code == "OPENAI_AUTH_ERROR"
+    assert attempt.attempt_status == "FAILED"
+    assert attempt.error_code == "OPENAI_AUTH_ERROR"
+
+
 def test_load_voice_audio_payload_prefers_database_blob(tmp_path, monkeypatch) -> None:
     session = _voice_session(audio_storage_key="event/session/recording.webm")
     audio_record = VoiceNoteAudio(

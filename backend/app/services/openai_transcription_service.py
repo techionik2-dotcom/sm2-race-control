@@ -166,6 +166,15 @@ def transcribe_audio_bytes(
                 ) from exc
     except error.HTTPError as exc:
         detail = _load_error_detail(exc)
+        if exc.code in {401, 403}:
+            raise OpenAITranscriptionError(
+                "OpenAI API key is invalid or does not have access to speech transcription",
+                code="OPENAI_AUTH_ERROR",
+                retryable=False,
+                status_code=exc.code,
+                detail=detail,
+            ) from exc
+
         retryable = exc.code in {408, 409, 425, 429} or exc.code >= 500
         raise OpenAITranscriptionError(
             f"OpenAI returned HTTP {exc.code}",

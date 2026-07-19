@@ -28,7 +28,6 @@ import FilterAltOutlinedIcon from "@mui/icons-material/FilterAltOutlined"
 import Loader from "../../components/Common/Loader"
 import ProtectedRoute from "../../components/ProtectedRoute"
 import StatusBadge from "../../components/Common/StatusBadge"
-import VoiceInputControl from "../../components/Common/VoiceInputControl"
 import { getChatbotContext, sendChatbotQuery } from "../../utils/chatbotApi"
 import AssistantIcon from "./components/AssistantIcon"
 import {
@@ -1311,17 +1310,6 @@ export default function ChatbotPage() {
                         event.preventDefault()
                         void handleSubmit(event)
                       }
-                    }}
-                    disabled={isSending}
-                  />
-
-                  <VoiceInputControl
-                    className="chatbot-voice-input"
-                    mode="assistant"
-                    textareaRef={composerRef}
-                    onValueChange={setDraft}
-                    onTranscriptInserted={() => {
-                      setNotice("Voice prompt inserted into the composer.")
                     }}
                     disabled={isSending}
                   />
