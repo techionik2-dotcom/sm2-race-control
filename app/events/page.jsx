@@ -486,6 +486,10 @@ export default function EventList() {
             </div>
 
             <div className="events-page-actions">
+              <div className="events-portal-status" aria-label="Driver portal ready">
+                <span className="events-portal-status-dot" aria-hidden="true" />
+                Portal Ready
+              </div>
               <button
                 type="button"
                 className="btn btn-secondary"
